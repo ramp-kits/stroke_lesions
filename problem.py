@@ -23,10 +23,20 @@ score_types = [
     rw.score_types.F1Above(name='f1_70', threshold=0.7),
 ]
 
-
+# cross validation
 def get_cv(X, y):
-    cv = StratifiedShuffleSplit(n_splits=2, test_size=0.2, random_state=57)
-    return cv.split(X, y)
+    # used from mars 
+    # 3 quadrangles for training have not exactly the same size,
+    # but for simplicity just cut in 3
+    # for each fold use one quadrangle as test set, the other two as training
+
+    n_tot = len(X)
+    n1 = n_tot // 3
+    n2 = n1 * 2
+
+    return [(np.r_[0:n2], np.r_[n2:n_tot]),
+            (np.r_[n1:n_tot], np.r_[0:n1]),
+            (np.r_[0:n1, n2:n_tot], np.r_[n1:n2])]
 
 
 def _read_ids(path, split='train'):
