@@ -81,12 +81,12 @@ def _read_brain_image(path, subject_id):
     return load_img(path_brain_image).get_data()
 
 def _combine_masks(path_masks):
-    mask = load_img(path_masks[0]).get_data().astype(np.int8)
+    mask = load_img(path_masks[0]).get_data().astype(bool)
     for next_mask_path in path_masks[1:]:
-        mask2 = load_img(next_mask_path).get_data().astype(np.int8)
+        mask2 = load_img(next_mask_path).get_data().astype(bool)
         mask|=mask2
         #mask = np.add(mask, load_img(next_mask_path).get_data())
-    # mask.astype(np.uint8)
+    mask = mask.astype(np.uint8)
     # masks are to be only 0s for no lesion or 1s for lesion
     #mask[mask > 1] = 1 
     return mask
