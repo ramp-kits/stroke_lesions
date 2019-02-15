@@ -13,7 +13,6 @@ class Classifier(BaseEstimator):
         self.clf = DummyClassifier(strategy="constant", constant=0)
         #self.shift = 2 # how many neighbours are taken for calculating features
 
-    # stride tricks
     def _get_features(self, X):
         # very slow
         n_img, n_h, n_w, n_d = X.shape
@@ -102,21 +101,22 @@ class Classifier(BaseEstimator):
         return y_new            
         
     def fit(self, X, y):
-        #X_features = self._get_features_scipy(X)
-        #y_unpacked = self._unpack_y(y)
-        print(X.shape)
-        print(type(y))
-        X = X.ravel()[:, np.newaxis]
-        print(X.shape)
-        y = y.ravel()
-        
-        return self.clf.fit(X, y)
+        # takes image ravels it and returns 1s where there are maxs
+        return self
 
     def predict(self, X):
         # X_features = self._get_features_scipy(X)
-        X = X.ravel()[:, np.newaxis]
+        #X = X.ravel()[:, np.newaxis]
         
-        return self.clf.predict(X)
+        #return self.clf.predict(X)
+        # takes image ravels it and returns 1s where there are maxs
+        #X = X.ravel() #[:, np.newaxis]        
+        thres = np.max(X)
+        X[X < thres] = 0
+        X[X == thres] = 1
+        return X.astype(np.uint8)
+
+
 
     def predict_proba(self, X):
         # X_features = self._get_features_scipy(X)
