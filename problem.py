@@ -8,8 +8,8 @@ from nilearn.image import load_img
 from sklearn.model_selection import StratifiedShuffleSplit
 
 problem_title = 'Stroke segmentation'
-_target_column_name = 'species'
-_prediction_label_names = ['setosa', 'versicolor', 'virginica']
+#_target_column_name = 'species'
+_prediction_label_names = [0, 1]
 # A type (class) which will be used to create wrapper objects for y_pred
 Predictions = rw.prediction_types.make_multiclass(
     label_names=_prediction_label_names)
@@ -18,9 +18,9 @@ workflow = rw.workflows.Classifier()
 
 score_types = [
     rw.score_types.Accuracy(name='acc'),
-    rw.score_types.ClassificationError(name='error'),
-    rw.score_types.NegativeLogLikelihood(name='nll'),
-    rw.score_types.F1Above(name='f1_70', threshold=0.7),
+    #rw.score_types.ClassificationError(name='error'),
+    #rw.score_types.NegativeLogLikelihood(name='nll'),
+    #rw.score_types.F1Above(name='f1_70', threshold=0.7),
 ]
 
 # cross validation
@@ -30,13 +30,12 @@ def get_cv(X, y):
     # but for simplicity just cut in 3
     # for each fold use one quadrangle as test set, the other two as training
 
-    n_tot = len(X)
-    n1 = n_tot // 3
-    n2 = n1 * 2
+    # FIXME: k-fold from scikit
 
-    return [(np.r_[0:n2], np.r_[n2:n_tot]),
-            (np.r_[n1:n_tot], np.r_[0:n1]),
-            (np.r_[0:n1, n2:n_tot], np.r_[n1:n2])]
+    xx = [(np.array([0, 1]), np.array([2])),
+          (np.array([1, 2]), np.array([0]))]
+    print(xx)
+    return xx
 
 
 def _read_ids(path, split='train'):
@@ -54,9 +53,8 @@ def _read_ids(path, split='train'):
 
     # FIXME: return only 7 first IDs 
     if split == 'train':
-        return train_id[:7]
-
-    return test_id[:7]
+        return train_id[:3]
+    return test_id[:3]
 
 def _get_patient_path(path, subject_id):
     path_metadata = os.path.join(
@@ -83,12 +81,14 @@ def _read_brain_image(path, subject_id):
     return load_img(path_brain_image).get_data()
 
 def _combine_masks(path_masks):
-    mask = load_img(path_masks[0]).get_data()
+    mask = load_img(path_masks[0]).get_data().astype(np.int8)
     for next_mask_path in path_masks[1:]:
-        mask = np.add(mask, load_img(next_mask_path).get_data())
-
+        mask2 = load_img(next_mask_path).get_data().astype(np.int8)
+        mask|=mask2
+        #mask = np.add(mask, load_img(next_mask_path).get_data())
+    # mask.astype(np.uint8)
     # masks are to be only 0s for no lesion or 1s for lesion
-    mask[mask > 1] = 1 
+    #mask[mask > 1] = 1 
     return mask
 
 def _read_stroke_segmentation(path, subject_id):
@@ -99,7 +99,7 @@ def _read_stroke_segmentation(path, subject_id):
     mask = _combine_masks(path_masks)  
 
     # convert 3D numpy array to list of 2D sparse matrices
-    mask = [sps.csr_matrix(mask[idx]) for idx in range(np.size(mask,0))]
+    # mask = [sps.csr_matrix(mask[idx]) for idx in range(np.size(mask,0))]
     return mask  
 
 def _read_data(path, split_ids):
@@ -109,7 +109,8 @@ def _read_data(path, split_ids):
 
     Y = np.stack([_read_stroke_segmentation(path, subject_id)
                    for subject_id in split_ids])
-    return X, Y
+    print(Y.shape)
+    return X.ravel(), Y.ravel()
 
 
 def get_train_data(path='.'):
