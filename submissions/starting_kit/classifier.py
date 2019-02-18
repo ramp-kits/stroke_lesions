@@ -7,7 +7,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.dummy import DummyClassifier
 
 
-class Classifier(BaseEstimator):
+class SegmentationClassifier(BaseEstimator):
     def __init__(self):
         #self.clf = RandomForestClassifier(n_estimators=3, max_depth=10)
         self.clf = DummyClassifier(strategy="constant", constant=0)
