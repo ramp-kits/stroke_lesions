@@ -1,4 +1,3 @@
-
 import numpy as np
 import scipy.ndimage as nd
 from sklearn.base import BaseEstimator
@@ -6,7 +5,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.dummy import DummyClassifier
 
-#from keras.layers import Input, MaxPooling3D, UpSampling3D, Conv3D, Reshape, Conv3DTranspose
+from keras.layers import Input, MaxPooling3D, UpSampling3D, Conv3D, Reshape, Conv3DTranspose
 
 
 class KerasSegmentationClassifier(BaseEstimator):
@@ -23,7 +22,6 @@ class KerasSegmentationClassifier(BaseEstimator):
         nb = len(indices)
         #X = np.zeros((batch_size, 32, 32, 3))
         #Y = np.zeros((batch_size, 403))
-        
         
         while True:
             if shuffle:
@@ -111,6 +109,7 @@ class KerasSegmentationClassifier(BaseEstimator):
             batch_size=self.batch_size,
             shuffle=True
         )
+        print('fitting')
 
         '''
         gen_valid = self._build_train_generator(

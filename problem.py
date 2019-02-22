@@ -12,7 +12,6 @@ import scipy.sparse as sps
 from nilearn.image import load_img
 from sklearn.model_selection import StratifiedShuffleSplit
 
-
 problem_title = 'Stroke segmentation'
 #_target_column_name = 'species'
 _prediction_label_names = [0, 1]
@@ -51,8 +50,6 @@ def average_symmetric_surface_distance(y_pred, y_true):
 def hausdorff_distance(y_pred, y_true):
     # a measure of the maximum surface distance, hence especially sensitive to outliers
     # maximum of all surface distances
-    
-    
     pass
     
 ########################################################
@@ -89,6 +86,7 @@ def _read_ids(path, split='train'):
         return train_id[:10]
     return test_id[:10]
 
+# FIXME: might be better to get Img id instead of Subject Id
 def _get_patient_path(path, subject_id):
     path_metadata = os.path.join(
         path, 'data', 'images', 'ATLAS_Meta-Data_Release_1.1_standard_mni.csv'
@@ -158,8 +156,7 @@ def get_test_data(path='.'):
     #return _read_data(path, test_id)
     return test_id
     
-    
-    
+
 # FIXME: when added to workflow change those lines:
 #from ..utils.importing import import_file
 import submissions.starting_kit.keras_segmentation_classifier as classifier 
@@ -199,7 +196,6 @@ class SimplifiedSegmentationClassifier(object):
         
         # FIXME: when added to workflow add those lines:
         #segmentation_classifier = import_file(module_path, self.element_names[0])
-        
         #clf = segmentation_classifier.SegmentationClassifier()
         clf = classifier.KerasSegmentationClassifier()
         # load image one by one
@@ -238,7 +234,6 @@ class SimplifiedSegmentationClassifier(object):
         for idx, patient_id in enumerate(patient_idxs):
             X = self._read_brain_image(module_path, patient_id)
             y_true = self._read_stroke_segmentation(module_path, patient_id)
-           
             y_pred = clf.predict(X)
             dices[idx] = dice_coefficient(y_pred, y_true)
             del X
@@ -362,11 +357,15 @@ class ImageLoader(object):
     def __len__(self):
         return self.nb_examples
             ######################read single data image#################################
-    def _get_patient_path(self, img_id, path, data_file):
+    
+    # FIXME: might be better to go with img_id instead of subject id
+    def _get_patient_path(self, patient_id, path, data_file):
         path_metadata = os.path.join(path, data_file)
         df = pd.read_csv(path_metadata)
         #site_dir = df[df['Img Id'] == img_id]['INDI Site ID']
-        subject = df[df['Img Id'] == img_id]
+        #subject = df[df['Img Id'] == img_id]
+        subject = df[df['INDI Subject ID'] == patient_id]
+        assert len(subject) == 1, 'Patient Id >{}< not found'.format(img_id)
         site_dir = subject['INDI Site ID'].iloc[0]
         subject_id = subject['INDI Subject ID'].iloc[0]
         subject_id_str = self._get_str_subject_id(subject_id)
