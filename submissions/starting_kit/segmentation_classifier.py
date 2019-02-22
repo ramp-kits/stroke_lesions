@@ -40,6 +40,7 @@ class SegmentationClassifier(BaseEstimator):
         
     def fit(self, X, y):
         # takes image ravels it and returns 1s where there are maxs
+        #return self
         return self
 
     def predict(self, X):

@@ -1,6 +1,6 @@
-from __future__ import division
+#from __future__ import division
 
-import submissions.starting_kit.classifier as classifier 
+#import submissions.starting_kit.classifier as classifier 
 
 
 import glob
@@ -43,12 +43,9 @@ def average_symmetric_surface_distance(y_pred, y_true):
     # ASSD: denotes the average surface distance between two segmentations
     # 1. define the average surface distance (ASD)
     # - get all the surface voxels
-    # - 
-    
+    # -     
     # 2. average over both directions
-    
-    
-    
+
     pass
     
 def hausdorff_distance(y_pred, y_true):
@@ -57,9 +54,6 @@ def hausdorff_distance(y_pred, y_true):
     
     
     pass
-    
-    
-    
     
 ########################################################
 
@@ -90,10 +84,10 @@ def _read_ids(path, split='train'):
     train_id = rng.choice(ids, size=int(ids.size * 0.8), replace=False)
     test_id = np.setdiff1d(ids, train_id, assume_unique=True)
 
-    # FIXME: return only 7 first IDs 
+    # FIXME: return only few first IDs 
     if split == 'train':
-        return train_id[:3]
-    return test_id[:3]
+        return train_id[:10]
+    return test_id[:10]
 
 def _get_patient_path(path, subject_id):
     path_metadata = os.path.join(
@@ -168,7 +162,7 @@ def get_test_data(path='.'):
     
 # FIXME: when added to workflow change those lines:
 #from ..utils.importing import import_file
-import submissions.starting_kit.segmentation_classifier as segmentation_classifier 
+import submissions.starting_kit.keras_segmentation_classifier as classifier 
 
 class SimplifiedSegmentationClassifier(object):
     """
@@ -206,8 +200,8 @@ class SimplifiedSegmentationClassifier(object):
         # FIXME: when added to workflow add those lines:
         #segmentation_classifier = import_file(module_path, self.element_names[0])
         
-        clf = segmentation_classifier.SegmentationClassifier()
-        
+        #clf = segmentation_classifier.SegmentationClassifier()
+        clf = classifier.KerasSegmentationClassifier()
         # load image one by one
         #for patient_id in patient_idxs:
         #    X = self._read_brain_image(module_path, patient_id)
@@ -264,7 +258,7 @@ class ImageLoader(object):
     Images are loaded by using the method `load`.
     Parameters
     ==========
-    X_array : ArrayContainer of int
+    img_ids : ArrayContainer of int
         vector of image IDs to train on
          (it is named X_array to be coherent with the current API,
          but as said here, it does not represent the data itself,
@@ -298,8 +292,7 @@ class ImageLoader(object):
         Parameters
         ==========
         index : int
-            Index of the image to load.
-            It should be between 0 and self.nb_examples - 1
+            Index of the image to load. it should be one of the img_ids indices
         Returns
         =======
         either a tuple `(x, y)` or `x`, where:
@@ -313,8 +306,14 @@ class ImageLoader(object):
         """
         from nilearn.image import load_img
        
-        subject_id, path_patient = self._get_patient_path(img_id=index, 
-                                            path=self.folder, data_file=self.data_file)
+
+        if index < 0 or index >= self.nb_examples:
+            raise IndexError("list index out of range")
+
+        #assert np.isin(index, self.img_ids)
+        subject_id, path_patient = self._get_patient_path(img_id=self.img_ids[index], 
+                                            path=self.folder,
+                                            data_file=self.data_file)
         
         x = self._read_brain_image(subject_id=subject_id, path_patient=path_patient)
         
@@ -333,7 +332,7 @@ class ImageLoader(object):
         ==========
         index : int
             Index of the image to load.
-            It should in between 0 and self.nb_examples - 1
+            It should be within the self.
         Returns
         =======
         either a tuple `(x, y)` or `x`, where:
@@ -344,30 +343,17 @@ class ImageLoader(object):
         a tuple (x, y).
         At test time, `y_array` is `None`, and `load` returns `x`.
         """
-        from skimage.io import imread
+        from nilearn.image import load_img
         from joblib import delayed, Parallel, cpu_count
 
-        for index in indexes:
-            assert 0 <= index < self.nb_examples
+        # FIXME: check if indexes within self.img_ids
 
         n_jobs = cpu_count()
-        filenames = [
-            os.path.join(self.folder, '{}'.format(self.X_array[index]))
-            for index in indexes]
+        
         xs = Parallel(n_jobs=n_jobs, backend='threading')(
-            delayed(imread)(filename) for filename in filenames)
-
-        if transforms is not None:
-            from functools import partial
-            transform = partial(_image_transform, transforms=transforms)
-            xs = Parallel(n_jobs=n_jobs, backend='threading')(
-                delayed(transform)(x) for x in xs)
-
-        if self.y_array is not None:
-            ys = [self.y_array[index] for index in indexes]
-            return xs, ys
-        else:
-            return xs
+            delayed(self.load)(index) for index in indexes)
+        
+        return xs
 
     def __iter__(self):
         for i in range(self.nb_examples):
