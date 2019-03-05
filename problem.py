@@ -179,7 +179,7 @@ class SimplifiedSegmentationClassifier(object):
         Total number of classes.
     """
 
-    def __init__(self, n_classes=2, data_file = 'ATLAS_Meta-Data_Release_1.1_standard_mni.csv', workflow_element_names=['segmentation_classifier']):
+    def __init__(self, n_classes=[0,1], data_file = 'ATLAS_Meta-Data_Release_1.1_standard_mni.csv', workflow_element_names=['segmentation_classifier']):
         self.n_classes = n_classes
         self.element_names = workflow_element_names
         self.data_file = data_file
@@ -240,8 +240,113 @@ class SimplifiedSegmentationClassifier(object):
             del y_true
             del y_pred
         return dices
+
+import os
+from keras.layers.normalization import BatchNormalization
+from keras.layers import Input, Conv3D, MaxPooling3D, Conv3DTranspose
+from keras.layers import Concatenate
+from keras import Model
+
+def fit_simple():
+    
+    inputs = Input((197, 233, 189, 1))
+    x = BatchNormalization()(inputs)
+    # downsampling
+    down1conv1 = Conv3D(2, (3, 3, 3), activation='relu', padding='same')(x)
+    down1conv1 = Conv3D(2, (3, 3, 3), activation='relu', padding='same')(down1conv1)
+    down1pool = MaxPooling3D((2, 2, 2))(down1conv1)
+    #middle
+    mid_conv1 = Conv3D(2, (3, 3, 3), activation='relu', padding='same')(down1pool)
+    mid_conv1 = Conv3D(2, (3, 3, 3), activation='relu', padding='same')(mid_conv1)
+
+    # upsampling
+    up1deconv = Conv3DTranspose(2, (3, 3, 3), strides=(2,2,2), activation='relu')(mid_conv1)
+    up1concat = Concatenate()([up1deconv, down1conv1])
+    up1conv1 = Conv3D(2, (3,3,3), activation='relu', padding='same')(up1concat)
+    up1conv1 = Conv3D(2, (3,3,3), activation='relu', padding='same')(up1conv1)
+    output = Conv3D(1, (3,3,3), activation='softmax', padding='same')(up1conv1)
+
+    model = Model(inputs=inputs, outputs=output)
+    model.compile(optimizer='rmsprop',
+                 loss='mean_squared_error',
+                 metrics=['accuracy'])
+
+
+    train_suffix='_LesionSmooth_*.nii.gz'
+    train_id = get_train_data(path='.')
+    brain_image = _read_brain_image('.', train_id[1])
+    mask = _read_stroke_segmentation('.', train_id[1]) 
+
+    model.fit(brain_image[None, ..., None], mask[None, ..., None].astype(bool))
+    #model.fit_on_batch
+    return model
+
         
-        
+def fit():
+
+    train_suffix='_LesionSmooth_*.nii.gz'
+    train_id = get_train_data(path='.')
+
+    #brain_image = _read_brain_image('.', train_id[0]) 
+    # size: (197, 233, 189)
+    mask = _read_stroke_segmentation('.', train_id[0]) 
+    # size: (197, 233, 189)
+
+    no_images = 3
+    number_of_classes = 2
+
+    #inputs = np.zeros((no_images, 197, 233, 189))
+    inputs = Input((197, 233, 189, 1)) #, 1)) # 1-number of classes
+    x = BatchNormalization()(inputs)
+    conv1 = Conv3D(32, (3, 3, 3), activation='relu', padding='same')(x)
+    conv1 = Conv3D(32, (3, 3, 3), activation='relu', padding='same')(conv1)
+    pool1 = MaxPooling3D(pool_size=(2, 2, 2))(conv1)
+
+    conv2 = Conv3D(64, (3, 3, 3), activation='relu', padding='same')(pool1)
+    conv2 = Conv3D(64, (3, 3, 3), activation='relu', padding='same')(conv2)
+    pool2 = MaxPooling3D(pool_size=(2, 2, 2))(conv2)
+
+    conv3 = Conv3D(128, (3, 3, 3), activation='relu', padding='same')(pool2)
+    conv3 = Conv3D(128, (3, 3, 3), activation='relu', padding='same')(conv3)
+    pool3 = MaxPooling3D(pool_size=(2, 2, 2))(conv3)
+
+    conv4 = Conv3D(256, (3, 3, 3), activation='relu', padding='same')(pool3)
+    conv4 = Conv3D(256, (3, 3, 3), activation='relu', padding='same')(conv4)
+    pool4 = MaxPooling3D(pool_size=(2, 2, 2))(conv4)
+
+    conv5 = Conv3D(512, (3, 3, 3), activation='relu', padding='same')(pool4)
+    conv5 = Conv3D(512, (3, 3, 3), activation='relu', padding='same')(conv5)
+
+    up6 = concatenate([Conv3DTranspose(256, (2, 2, 2), strides=(2, 2, 2), padding='same')(conv5), conv4], axis=3)
+    conv6 = Conv3D(256, (3, 3, 3), activation='relu', padding='same')(up6)
+    conv6 = Conv3D(256, (3, 3, 3), activation='relu', padding='same')(conv6)
+
+    up7 = concatenate([Conv3DTranspose(128, (2, 2, 2), strides=(2, 2, 2), padding='same')(conv6), conv3], axis=3)
+    conv7 = Conv3D(128, (3, 3, 3), activation='relu', padding='same')(up7)
+    conv7 = Conv3D(128, (3, 3, 3), activation='relu', padding='same')(conv7)
+
+    up8 = concatenate([Conv3DTranspose(64, (2, 2, 2), strides=(2, 2, 2), padding='same')(conv7), conv2], axis=3)
+    conv8 = Conv3D(64, (3, 3, 3), activation='relu', padding='same')(up8)
+    conv8 = Conv3D(64, (3, 3, 3), activation='relu', padding='same')(conv8)
+
+    up9 = concatenate([Conv3DTranspose(32, (2, 2, 2), strides=(2, 2, 2), padding='same')(conv8), conv1], axis=3)
+    conv9 = Conv3D(32, (3, 3, 3), activation='relu', padding='same')(up9)
+    conv9 = Conv3D(32, (3, 3, 3), activation='relu', padding='same')(conv9)
+
+    conv10 = Conv3D(n_classes, (1, 1, 1), activation='linear')(conv9)
+    #for i in range(no_images):
+    #    #import pdb; pdb.set_trace()
+    #    inputs[i,:,:,:] = _read_brain_image('.', train_id[i])
+    
+
+    img_height, img_width = (256,256) 
+    
+
+
+    #return brain_image, mask
+    #return load_img(path_brain_image).get_data()
+
+
 class ImageLoader(object):
     """
     Load and image and optionally its segmented mask.
@@ -267,15 +372,15 @@ class ImageLoader(object):
         Total number of classes.
     """
 
-    def __init__(self, img_ids, folder='data/images/', run_type = 'train',
+    def __init__(self, patient_ids, folder='data/images/', run_type = 'train',
                 data_file='ATLAS_Meta-Data_Release_1.1_standard_mni.csv',
                 n_classes=[0,1], 
                 train_suffix='_t1w_deface_stx.nii.gz', test_suffix='_LesionSmooth_*.nii.gz'):
         self.data_file = data_file
         self.folder = folder
-        self.img_ids = img_ids
+        self.patient_ids = patient_ids
         self.n_classes = n_classes
-        self.nb_examples = len(img_ids)
+        self.nb_examples = len(patient_ids)
         self.train_suffix = train_suffix
         self.test_suffix = test_suffix
         self.run_type = run_type
@@ -306,7 +411,7 @@ class ImageLoader(object):
             raise IndexError("list index out of range")
 
         #assert np.isin(index, self.img_ids)
-        subject_id, path_patient = self._get_patient_path(img_id=self.img_ids[index], 
+        subject_id, path_patient = self._get_patient_path(img_id=self.patient_ids[index], 
                                             path=self.folder,
                                             data_file=self.data_file)
         
@@ -365,7 +470,7 @@ class ImageLoader(object):
         #site_dir = df[df['Img Id'] == img_id]['INDI Site ID']
         #subject = df[df['Img Id'] == img_id]
         subject = df[df['INDI Subject ID'] == patient_id]
-        assert len(subject) == 1, 'Patient Id >{}< not found'.format(img_id)
+        assert len(subject) == 1, 'Patient Id >{}< not found'.format(patient_id)
         site_dir = subject['INDI Site ID'].iloc[0]
         subject_id = subject['INDI Subject ID'].iloc[0]
         subject_id_str = self._get_str_subject_id(subject_id)
