@@ -140,7 +140,6 @@ def _read_data(path, split_ids):
 
     Y = np.stack([_read_stroke_segmentation(path, subject_id)
                    for subject_id in split_ids])
-    print(Y.shape)
     #return X.ravel(), Y.ravel()
     return X, Y
 
@@ -271,15 +270,18 @@ def fit_simple():
                  loss='mean_squared_error',
                  metrics=['accuracy'])
 
-
     train_suffix='_LesionSmooth_*.nii.gz'
     train_id = get_train_data(path='.')
     brain_image = _read_brain_image('.', train_id[1])
     mask = _read_stroke_segmentation('.', train_id[1]) 
 
-    model.fit(brain_image[None, ..., None], mask[None, ..., None].astype(bool))
+    #model.fit(brain_image[None, ..., None], mask[None, ..., None].astype(bool))
     #model.fit_on_batch
-    return model
+    #return model
+    # train the network
+    H = model.fit_generator(aug.flow(trainX, trainY, batch_size=BS),
+	validation_data=(testX, testY), steps_per_epoch=len(trainX) // BS,
+	epochs=EPOCHS)
 
         
 def fit():
@@ -411,12 +413,13 @@ class ImageLoader(object):
             raise IndexError("list index out of range")
 
         #assert np.isin(index, self.img_ids)
-        subject_id, path_patient = self._get_patient_path(img_id=self.patient_ids[index], 
+        subject_id, path_patient = self._get_patient_path(patient_id=self.patient_ids[index], 
                                             path=self.folder,
                                             data_file=self.data_file)
         
         x = self._read_brain_image(subject_id=subject_id, path_patient=path_patient)
-        
+
+
         if self.run_type == 'train':
             y = self._read_stroke_segmentation(subject_id=subject_id, path_patient=path_patient)
             return x, y
@@ -452,7 +455,6 @@ class ImageLoader(object):
         
         xs = Parallel(n_jobs=n_jobs, backend='threading')(
             delayed(self.load)(index) for index in indexes)
-        
         return xs
 
     def __iter__(self):
@@ -465,6 +467,7 @@ class ImageLoader(object):
     
     # FIXME: might be better to go with img_id instead of subject id
     def _get_patient_path(self, patient_id, path, data_file):
+        print('working on patient: {}'.format(patient_id))
         path_metadata = os.path.join(path, data_file)
         df = pd.read_csv(path_metadata)
         #site_dir = df[df['Img Id'] == img_id]['INDI Site ID']
@@ -495,7 +498,6 @@ class ImageLoader(object):
    
     
     def _combine_masks(self, path_masks):
-        print(path_masks)
         mask = load_img(path_masks[0]).get_data().astype(bool)
         for next_mask_path in path_masks[1:]:
             mask2 = load_img(next_mask_path).get_data().astype(bool)
@@ -509,7 +511,6 @@ class ImageLoader(object):
     def _read_stroke_segmentation(self, subject_id, path_patient):
         #path_patient = _get_patient_path(path, subject_id)
         str_subject_id = self._get_str_subject_id(subject_id)
-        print(str(path_patient)+'/'+str_subject_id +self.test_suffix)
         
         path_masks = glob.glob(str(path_patient)+'/'+str_subject_id +self.test_suffix) # get all the lesions
         
