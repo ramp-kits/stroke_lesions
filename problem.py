@@ -283,72 +283,6 @@ def fit_simple():
 	validation_data=(testX, testY), steps_per_epoch=len(trainX) // BS,
 	epochs=EPOCHS)
 
-        
-def fit():
-
-    train_suffix='_LesionSmooth_*.nii.gz'
-    train_id = get_train_data(path='.')
-
-    #brain_image = _read_brain_image('.', train_id[0]) 
-    # size: (197, 233, 189)
-    mask = _read_stroke_segmentation('.', train_id[0]) 
-    # size: (197, 233, 189)
-
-    no_images = 3
-    number_of_classes = 2
-
-    #inputs = np.zeros((no_images, 197, 233, 189))
-    inputs = Input((197, 233, 189, 1)) #, 1)) # 1-number of classes
-    x = BatchNormalization()(inputs)
-    conv1 = Conv3D(32, (3, 3, 3), activation='relu', padding='same')(x)
-    conv1 = Conv3D(32, (3, 3, 3), activation='relu', padding='same')(conv1)
-    pool1 = MaxPooling3D(pool_size=(2, 2, 2))(conv1)
-
-    conv2 = Conv3D(64, (3, 3, 3), activation='relu', padding='same')(pool1)
-    conv2 = Conv3D(64, (3, 3, 3), activation='relu', padding='same')(conv2)
-    pool2 = MaxPooling3D(pool_size=(2, 2, 2))(conv2)
-
-    conv3 = Conv3D(128, (3, 3, 3), activation='relu', padding='same')(pool2)
-    conv3 = Conv3D(128, (3, 3, 3), activation='relu', padding='same')(conv3)
-    pool3 = MaxPooling3D(pool_size=(2, 2, 2))(conv3)
-
-    conv4 = Conv3D(256, (3, 3, 3), activation='relu', padding='same')(pool3)
-    conv4 = Conv3D(256, (3, 3, 3), activation='relu', padding='same')(conv4)
-    pool4 = MaxPooling3D(pool_size=(2, 2, 2))(conv4)
-
-    conv5 = Conv3D(512, (3, 3, 3), activation='relu', padding='same')(pool4)
-    conv5 = Conv3D(512, (3, 3, 3), activation='relu', padding='same')(conv5)
-
-    up6 = concatenate([Conv3DTranspose(256, (2, 2, 2), strides=(2, 2, 2), padding='same')(conv5), conv4], axis=3)
-    conv6 = Conv3D(256, (3, 3, 3), activation='relu', padding='same')(up6)
-    conv6 = Conv3D(256, (3, 3, 3), activation='relu', padding='same')(conv6)
-
-    up7 = concatenate([Conv3DTranspose(128, (2, 2, 2), strides=(2, 2, 2), padding='same')(conv6), conv3], axis=3)
-    conv7 = Conv3D(128, (3, 3, 3), activation='relu', padding='same')(up7)
-    conv7 = Conv3D(128, (3, 3, 3), activation='relu', padding='same')(conv7)
-
-    up8 = concatenate([Conv3DTranspose(64, (2, 2, 2), strides=(2, 2, 2), padding='same')(conv7), conv2], axis=3)
-    conv8 = Conv3D(64, (3, 3, 3), activation='relu', padding='same')(up8)
-    conv8 = Conv3D(64, (3, 3, 3), activation='relu', padding='same')(conv8)
-
-    up9 = concatenate([Conv3DTranspose(32, (2, 2, 2), strides=(2, 2, 2), padding='same')(conv8), conv1], axis=3)
-    conv9 = Conv3D(32, (3, 3, 3), activation='relu', padding='same')(up9)
-    conv9 = Conv3D(32, (3, 3, 3), activation='relu', padding='same')(conv9)
-
-    conv10 = Conv3D(n_classes, (1, 1, 1), activation='linear')(conv9)
-    #for i in range(no_images):
-    #    #import pdb; pdb.set_trace()
-    #    inputs[i,:,:,:] = _read_brain_image('.', train_id[i])
-    
-
-    img_height, img_width = (256,256) 
-    
-
-
-    #return brain_image, mask
-    #return load_img(path_brain_image).get_data()
-
-
 class ImageLoader(object):
     """
     Load and image and optionally its segmented mask.
@@ -465,15 +399,24 @@ class ImageLoader(object):
         return self.nb_examples
             ######################read single data image#################################
     
-    # FIXME: might be better to go with img_id instead of subject id
     def _get_patient_path(self, patient_id, path, data_file):
         print('working on patient: {}'.format(patient_id))
         path_metadata = os.path.join(path, data_file)
         df = pd.read_csv(path_metadata)
         #site_dir = df[df['Img Id'] == img_id]['INDI Site ID']
         #subject = df[df['Img Id'] == img_id]
+        
         subject = df[df['INDI Subject ID'] == patient_id]
+        if len(subject)>1:
+            # FIXME???: for now only first image is taken from a single patient, even if more
+            # is given; make sure that it is a correct approach
+            try:
+                subject = subject[subject['Img Id']==subject.index[0]]
+            except:
+                import pdb; pdb.set_trace()
+        
         assert len(subject) == 1, 'Patient Id >{}< not found'.format(patient_id)
+
         site_dir = subject['INDI Site ID'].iloc[0]
         subject_id = subject['INDI Subject ID'].iloc[0]
         subject_id_str = self._get_str_subject_id(subject_id)

@@ -52,6 +52,27 @@ class KerasSegmentationClassifier(BaseEstimator):
                     Y[i] = y[:,:,:,np.newaxis]
                     yield X[:bs], Y[:bs]
 
+    def _build_test_generator(self, img_loader, batch_size=1):
+        nb = len(img_loader)
+
+        X = np.zeros((batch_size, 197, 233, 189, 1))
+        Y = np.zeros((batch_size, 197, 233, 189, 1))
+
+        while True:
+            for start in range(0, nb, batch_size):
+                stop = min(start + batch_size, nb)
+                # load the next minibatch in memory.
+                # The size of the minibatch is (stop - start),
+                # which is `batch_size` for the all except the last
+                # minibatch, which can either be `batch_size` if
+                # `nb` is a multiple of `batch_size`, or `nb % batch_size`.
+                bs = stop - start
+                for i, img_index in enumerate(range(start, stop)):
+                    x = img_loader.load(img_index)
+                    X[i] = x[:,:,:,np.newaxis]
+yield X[:bs]
+
+
     def fit(self, img_loader):
         # takes imaage ravels it and returns 1s where there are maxs
         #return self
@@ -72,7 +93,7 @@ class KerasSegmentationClassifier(BaseEstimator):
             batch_size=self.batch_size,
             shuffle=True
         )
-
+        
         gen_valid = self._build_train_generator(
             img_loader,
             indices=ind_valid,
@@ -80,6 +101,17 @@ class KerasSegmentationClassifier(BaseEstimator):
             shuffle=True
         )
         
+        # make sure that the memory error does not come up in generators
+        for idx, i in enumerate(gen_train):
+            print('train')
+            iter(gen_train)
+            print('valid')
+            iter(gen_valid)
+            print(idx)
+            #print('idx train: {}'.format(idx))
+        #for idx, i in enumerate(gen_train):
+        #    print('idx valid: {}'.format(idx))
+        '''
         self.model.fit_generator(
             gen_train,
             steps_per_epoch=get_nb_minibatches(nb_train, self.batch_size),
@@ -92,6 +124,7 @@ class KerasSegmentationClassifier(BaseEstimator):
             verbose=1
         )
         
+        '''
 
     def model_simple(self):
             
@@ -129,7 +162,7 @@ class KerasSegmentationClassifier(BaseEstimator):
         return model
 
 
-    def predict(self, X):
+    def predict(self, img_loader):
         # X_features = self._get_features_scipy(X)
         #X = X.ravel()[:, np.newaxis]
         
@@ -140,5 +173,20 @@ class KerasSegmentationClassifier(BaseEstimator):
         X[X < thres] = 0
         X[X == thres] = 1
         return X.astype(np.uint8)
+
+
+        nb_test = len(img_loader)
+        gen_test = self._build_test_generator(img_loader, self.batch_size)
+        return self.model.predict(
+            gen_test,
+            batch_size=1
+            #steps=get_nb_minibatches(nb_test, self.batch_size),
+            #max_queue_size=16,
+            #workers=1,
+            #use_multiprocessing=True,
+            #verbose=0
+        )
+        # predict(x, batch_size=None, verbose=0, steps=None, callbacks=None)
+
 
 
