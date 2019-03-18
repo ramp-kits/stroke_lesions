@@ -83,8 +83,8 @@ def _read_ids(path, split='train'):
 
     # FIXME: return only few first IDs 
     if split == 'train':
-        return train_id[:10]
-    return test_id[:10]
+        return train_id[:15]
+    return test_id[:15]
 
 # FIXME: might be better to get Img id instead of Subject Id
 def _get_patient_path(path, subject_id):
@@ -351,11 +351,13 @@ class ImageLoader(object):
                                             path=self.folder,
                                             data_file=self.data_file)
         
+        print('READ BRAIN IMAGES')
         x = self._read_brain_image(subject_id=subject_id, path_patient=path_patient)
 
 
         if self.run_type == 'train':
             y = self._read_stroke_segmentation(subject_id=subject_id, path_patient=path_patient)
+            print('READ SEGMENTATION')
             return x, y
         elif self.run_type == 'test':
             return x

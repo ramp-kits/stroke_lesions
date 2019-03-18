@@ -20,7 +20,7 @@ from rampwf.workflows.image_classifier import get_nb_minibatches
 class KerasSegmentationClassifier(BaseEstimator):
     def __init__(self):
         self.clf = DummyClassifier(strategy="constant", constant=0)
-        self.batch_size = 1
+        self.batch_size = 3
         self.model = self.model_simple()
 
     def _build_train_generator(self, img_loader, indices, batch_size=1,
@@ -46,12 +46,15 @@ class KerasSegmentationClassifier(BaseEstimator):
                 # `nb` is a multiple of `batch_size`, or `nb % batch_size`.
                 bs = stop - start
                 #Y[:] = 0
+                print(start, stop)
                 for i, img_index in enumerate(indices[start:stop]):
                     x, y = img_loader.load(img_index)
                     #x = self._transform(x)
                     X[i] = x[:,:,:,np.newaxis]
                     Y[i] = y[:,:,:,np.newaxis]
-                    yield X[:bs], Y[:bs]
+                    #X[i] = x[:,:,:,np.newaxis]
+                    #Y[i] = y[:,:,:,np.newaxis]
+                yield X[:bs], Y[:bs]
 
     def _build_test_generator(self, img_loader, batch_size=1):
         nb = len(img_loader)
@@ -111,22 +114,23 @@ class KerasSegmentationClassifier(BaseEstimator):
             print(idx)
 
         '''
+        print('FITTING')
         self.model.fit_generator(
             gen_train,
             steps_per_epoch=get_nb_minibatches(nb_train, self.batch_size),
-            epochs=1,
-            max_queue_size=3,
-            workers=1,
-            use_multiprocessing=True,
+            epochs=5,
+            max_queue_size=1,
+            workers=0,
+            use_multiprocessing=False,
             validation_data=gen_valid,
             validation_steps=get_nb_minibatches(nb_valid, self.batch_size),
-            verbose=1
+            verbose=100
         )
         
         
 
     def model_simple(self):
-            
+        print('MODEL')
         inputs = Input((197, 233, 189, 1))
         x = BatchNormalization()(inputs)
         # downsampling
