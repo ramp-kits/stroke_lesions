@@ -22,10 +22,10 @@ simp = problem.SimplifiedSegmentationClassifier()
 clf = simp.train_submission(module_path=module_path,patient_ids=train_ids)  
 
 
-
 # n_classes=[0,1]
 # img_loader = problem.ImageLoader(patient_ids=train_ids, n_classes=n_classes) 
 # clf.fit(img_loader)  
+
 #test_ids = problem.get_test_data()
 #score = simp.test_submission(module_path = module_path,trained_model = clf, patient_idxs = test_ids)  
 
@@ -67,4 +67,3 @@ plt.imshow(train[0,:,:,100])
 plt.subplot(1,2,2)
 plt.title('mask')
  
-'''
