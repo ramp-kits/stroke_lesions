@@ -70,7 +70,7 @@ class KerasSegmentationClassifier(BaseEstimator):
                 for i, img_index in enumerate(range(start, stop)):
                     x = img_loader.load(img_index)
                     X[i] = x[:,:,:,np.newaxis]
-yield X[:bs]
+                yield X[:bs]
 
 
     def fit(self, img_loader):
@@ -100,7 +100,7 @@ yield X[:bs]
             batch_size=self.batch_size,
             shuffle=True
         )
-        
+        '''
         # make sure that the memory error does not come up in generators
         for idx, i in enumerate(gen_train):
             print('train')
@@ -108,9 +108,7 @@ yield X[:bs]
             print('valid')
             iter(gen_valid)
             print(idx)
-            #print('idx train: {}'.format(idx))
-        #for idx, i in enumerate(gen_train):
-        #    print('idx valid: {}'.format(idx))
+
         '''
         self.model.fit_generator(
             gen_train,
@@ -124,7 +122,7 @@ yield X[:bs]
             verbose=1
         )
         
-        '''
+        
 
     def model_simple(self):
             
@@ -161,7 +159,6 @@ yield X[:bs]
         '''
         return model
 
-
     def predict(self, img_loader):
         # X_features = self._get_features_scipy(X)
         #X = X.ravel()[:, np.newaxis]
@@ -173,7 +170,6 @@ yield X[:bs]
         X[X < thres] = 0
         X[X == thres] = 1
         return X.astype(np.uint8)
-
 
         nb_test = len(img_loader)
         gen_test = self._build_test_generator(img_loader, self.batch_size)
