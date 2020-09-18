@@ -6,6 +6,7 @@ import rampwf as rw
 import scipy.sparse as sps
 from nilearn.image import load_img
 from sklearn.model_selection import StratifiedShuffleSplit
+from rampwf.prediction_types.base import BasePrediction
 
 from rampwf.score_types import BaseScoreType
 
@@ -14,6 +15,88 @@ RANDOM_STATE = 42
 
 # Author: Maria Telenczuk <https://github.com/maikia>
 # License: BSD 3 clause
+
+
+class _MultiClass3d(BasePrediction):
+    def __init__(self, x_len, y_len, z_len,
+                 y_pred=None, y_true=None, n_samples=None):
+        # accepts only the predictions of classes 0 and 1
+        self.x_len = x_len
+        self.y_len = y_len
+        self.z_len = z_len
+
+        if y_pred is not None:
+            self.y_pred = np.array(y_pred)
+        elif y_true is not None:
+            self.y_pred = np.array(y_true)
+        elif n_samples is not None:
+            self.y_pred = np.empty((n_samples,
+                                    self.x_len,
+                                    self.y_len,
+                                    self.z_len), dtype=float)
+            self.y_pred.fill(np.nan)
+        else:
+            raise ValueError(
+                'Missing init argument: y_pred, y_true, or n_samples')
+        self.check_y_pred_dimensions()
+
+    @classmethod
+    def combine(cls, predictions_list, index_list=None):
+        """Inherits from the base class where the scores are averaged.
+        Here, averaged predictions < 0.5 will be set to 0.0 and averaged
+        predictions >= 0.5 will be set to 1.0 so that `y_pred` will consist
+        only of 0.0s and 1.0s.
+        """
+        # call the combine from the BasePrediction
+        combined_predictions = super(
+            _MultiOutputClassification, cls
+            ).combine(
+                predictions_list=predictions_list,
+                index_list=index_list
+                )
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', category=RuntimeWarning)
+            combined_predictions.y_pred[
+                combined_predictions.y_pred < 0.5] = 0.0
+            combined_predictions.y_pred[
+                combined_predictions.y_pred >= 0.5] = 1.0
+
+        return combined_predictions
+
+
+    @property
+    def valid_indexes(self):
+        """Return valid indices (e.g., a cross-validation slice)."""
+        if len(self.y_pred.shape) == 3:
+            return ~np.isnan(self.y_pred)
+        else:
+            raise ValueError('y_pred.shape != 2 is not implemented')
+
+    '''
+    @classmethod
+    def combine(cls, predictions_list, index_list=None):
+        """Inherits from the base class where the scores are averaged.
+        Here, averaged predictions < 0.5 will be set to 0.0 and averaged
+        predictions >= 0.5 will be set to 1.0 so that `y_pred` will consist
+        only of 0.0s and 1.0s.
+        """
+        # call the combine from the BasePrediction
+        combined_predictions = super(
+            _MultiOutputClassification, cls
+            ).combine(
+                predictions_list=predictions_list,
+                index_list=index_list
+                )
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', category=RuntimeWarning)
+            combined_predictions.y_pred[
+                combined_predictions.y_pred < 0.5] = 0.0
+            combined_predictions.y_pred[
+                combined_predictions.y_pred >= 0.5] = 1.0
+
+        return combined_predictions
+    '''
+
 
 class ImageLoader(object):
     """
@@ -46,7 +129,8 @@ class ImageLoader(object):
         self.lesion_name = 'truth.nii.gz'
 
         self.dir_data = os.path.join(path, dir_name)
-        self.list_subj_dirs= os.listdir(self.data_dir)
+        self.data_type = dir_name
+        self.list_subj_dirs= os.listdir(self.dir_data)
 
     def load(self, path_patient):
         """
@@ -67,23 +151,24 @@ class ImageLoader(object):
         a tuple (x, y).
         At test time, `y` is `None`, and `load` returns `x`.
         """
-        if not os.path.exists(path):
-            raise IndexError("path does not exist")
+        if not os.path.exists(path_patient):
+            raise IndexError(f"{path_patient} does not exist")
 
         path_t1 = os.path.join(path_patient, self.t1_name)
-        x = load_img(t1_path).get_data()
+        x = load_img(path_t1).get_data()
 
 
-        if self.run_type == 'train':
+        if self.data_type == 'train':
             path_lesion = os.path.join(path_patient, self.lesion_name)
             y = load_img(path_lesion).get_data()
             return x, y
-        elif self.run_type == 'test':
+        elif self.data_type == 'test':
             return x
 
     def __iter__(self):
-        for subj_dir in range(self.list_subj_dirs):
-            yield self.load(subj_dir)
+        for subj_dir in self.list_subj_dirs:
+            subj_dir_load = os.path.join(self.dir_data, subj_dir)
+            yield self.load(subj_dir_load)
 
 
 # define the scores
@@ -101,15 +186,16 @@ class DiceCoeff(BaseScoreType):
     def __call__(self, y_true_mask, y_pred_mask):
         score = _dice_coeff(y_true_mask, y_pred_mask)
 
-    def _dice_coeff(self, y_true_mask, y_pred_mask)
+    def _dice_coeff(self, y_true_mask, y_pred_mask):
         if (np.sum(y_pred)==0) & (np.sum(y_true) == 0):
             return 1
         else:
-            dice = ((np.sum((y_pred==1)&(y_true==1))*2.0) /
-                    (np.sum(y_pred) + np.sum(y_true))
+            dice = (np.sum(
+                (y_pred==1) & (y_true==1)
+                )*2.0) / (np.sum(y_pred) + np.sum(y_true))
         return dice
 
-# TODO: other ideas:
+# TODO: other score ideas:
 # def average_symmetric_surface_distance(y_pred, y_true):
     # ASSD: denotes the average surface distance between two segmentations
     # 1. define the average surface distance (ASD)
@@ -136,7 +222,8 @@ score_types = [
 # In multilabel classification, this function computes subset accuracy:
 # the set of labels predicted for a sample must exactly match the corresponding
 # set of labels in y_true.
-    rw.score_types.DiceCoeff(),
+    # rw.score_types.
+    DiceCoeff(),
 ]
 
 # cross validation
@@ -158,10 +245,13 @@ def _read_data(path, dir_name):
     """
     return ImageLoader(path, dir_name)
 
-def get_train_data(path="."):
+def get_train_data(path='.'):
+    path = os.path.join(path, DATA_HOME)
+    import pdb; pdb.set_trace()
     return _read_data(path, 'train')
 
-def get_test_data(path="."):
+def get_test_data(path="data"):
+    path = os.path.join(path, DATA_HOME)
     return _read_data(path, 'test')
 
 
