@@ -21,8 +21,8 @@ class ImageLoader(object):
     In segmentation_classifier.py, both `fit` and `predict` take as input
     an instance of `ImageLoader`.
     ImageLoader is used in `fit` and `predict` to either load one 3d image
-    and its corresponding segmented mask  (at training time), or one 3d image (at test
-    time).
+    and its corresponding segmented mask  (at training time), or one 3d image
+    (at test time).
     Images are loaded by using the method `load`.
     Parameters
     ==========
@@ -34,171 +34,56 @@ class ImageLoader(object):
     folder : str
         folder where the data_file is
     data_file : str
-        name of the .csv file, with Img id, it's corresponding patient Id (INDI Subject ID)
-        and where this particular data stored
+        name of the .csv file, with Img id, it's corresponding patient Id
+        (INDI Subject ID) and where this particular data stored
     n_classes : int
         Total number of classes.
     """
 
-    def __init__(self, patient_ids, folder='data/images/', run_type = 'train',
-                data_file='ATLAS_Meta-Data_Release_1.1_standard_mni.csv',
-                n_classes=[0,1],
-                train_suffix='_t1w_deface_stx.nii.gz', test_suffix='_LesionSmooth_*.nii.gz'):
-        self.data_file = data_file
-        self.folder = folder
-        self.patient_ids = patient_ids
-        self.n_classes = n_classes
-        self.nb_examples = len(patient_ids)
-        self.train_suffix = train_suffix
-        self.test_suffix = test_suffix
-        self.run_type = run_type
+    def __init__(self, path, dir_name):
+        """ dir_name: 'train' or 'test' """
+        self.t1_name = 'T1.nii.gz'
+        self.lesion_name = 'truth.nii.gz'
 
-    def load(self, index):
+        self.dir_data = os.path.join(path, dir_name)
+        self.list_subj_dirs= os.listdir(self.data_dir)
+
+    def load(self, path_patient):
         """
         Load one image and its corresponding segmented mask (at training time),
         or one image (at test time).
         Parameters
         ==========
-        index : int
-            Index of the image to load. it should be one of the img_ids indices
+        path : string
+            path to the image to load
         Returns
         =======
         either a tuple `(x, y)` or `x`, where:
             - x is a numpy array of shape (height, width, depth),
               and corresponds to the image of the requested `index`.
-            - y is a numpy array of the same shape as x, however filled only with 
-                integers of n_classes
+            - y is a numpy array of the same shape as x, however filled only
+                with integers of n_classes
         At training time, `y` is given, and `load` returns
         a tuple (x, y).
         At test time, `y` is `None`, and `load` returns `x`.
         """
-        from nilearn.image import load_img
-       
+        if not os.path.exists(path):
+            raise IndexError("path does not exist")
 
-        if index < 0 or index >= self.nb_examples:
-            raise IndexError("list index out of range")
-
-        #assert np.isin(index, self.img_ids)
-        subject_id, path_patient = self._get_patient_path(patient_id=self.patient_ids[index], 
-                                            path=self.folder,
-                                            data_file=self.data_file)
-        
-        print('READ BRAIN IMAGES')
-        x = self._read_brain_image(subject_id=subject_id, path_patient=path_patient)
+        path_t1 = os.path.join(path_patient, self.t1_name)
+        x = load_img(t1_path).get_data()
 
 
         if self.run_type == 'train':
-            y = self._read_stroke_segmentation(subject_id=subject_id, path_patient=path_patient)
-            print('READ SEGMENTATION')
+            path_lesion = os.path.join(path_patient, self.lesion_name)
+            y = load_img(path_lesion).get_data()
             return x, y
         elif self.run_type == 'test':
             return x
 
-    def parallel_load(self, indexes, transforms=None):
-        """
-        Load and image and optionally its mask.
-        Load one image and its corresponding mask (at training time),
-        or one image (at test time).
-        Parameters
-        ==========
-        index : int
-            Index of the image to load.
-            It should be within the self.
-        Returns
-        =======
-        either a tuple `(x, y)` or `x`, where:
-            - x is a numpy array of shape (height, width, nb_color_channels),
-              and corresponds to the image of the requested `index`.
-            - y is an integer, corresponding to the class of `x`.
-        At training time, `y_array` is given, and `load` returns
-        a tuple (x, y).
-        At test time, `y_array` is `None`, and `load` returns `x`.
-        """
-        from nilearn.image import load_img
-        from joblib import delayed, Parallel, cpu_count
-
-        # FIXME: check if indexes within self.img_ids
-
-        n_jobs = cpu_count()
-        
-        xs = Parallel(n_jobs=n_jobs, backend='threading')(
-            delayed(self.load)(index) for index in indexes)
-        return xs
-
     def __iter__(self):
-        for i in range(self.nb_examples):
-            yield self.load(i)
-
-    def __len__(self):
-        return self.nb_examples
-            ######################read single data image#################################
-    
-    def _get_patient_path(self, patient_id, path, data_file):
-        print('working on patient: {}'.format(patient_id))
-        path_metadata = os.path.join(path, data_file)
-        df = pd.read_csv(path_metadata)
-        #site_dir = df[df['Img Id'] == img_id]['INDI Site ID']
-        #subject = df[df['Img Id'] == img_id]
-        
-        subject = df[df['INDI Subject ID'] == patient_id]
-        if len(subject)>1:
-            # FIXME???: for now only first image is taken from a single patient, even if more
-            # is given; make sure that it is a correct approach
-            try:
-                subject = subject[subject['Img Id']==subject.index[0]]
-            except:
-                import pdb; pdb.set_trace()
-        
-        assert len(subject) == 1, 'Patient Id >{}< not found'.format(patient_id)
-
-        site_dir = subject['INDI Site ID'].iloc[0]
-        subject_id = subject['INDI Subject ID'].iloc[0]
-        subject_id_str = self._get_str_subject_id(subject_id)
-        session = subject['Session'].iloc[0]
-        session=session.replace(" ", "")
-        
-        path_patient = os.path.join(
-            path, site_dir, subject_id_str, session
-        )
-        return subject_id, path_patient
-        
-    def _get_str_subject_id(self, subject_id):
-        return '{:06d}'.format(subject_id)
-    
-    def _read_brain_image(self, subject_id, path_patient):
-        # the data will be of dimensions: #h,v,d
-
-        path_brain_image = os.path.join(path_patient,
-            self._get_str_subject_id(subject_id) + self.train_suffix
-        )
-        return load_img(path_brain_image).get_data()
-   
-    
-    def _combine_masks(self, path_masks):
-        mask = load_img(path_masks[0]).get_data().astype(bool)
-        for next_mask_path in path_masks[1:]:
-            mask2 = load_img(next_mask_path).get_data().astype(bool)
-            mask|=mask2
-            #mask = np.add(mask, load_img(next_mask_path).get_data())
-        mask = mask.astype(np.uint8)
-        # masks are to be only 0s for no lesion or 1s for lesion
-        #mask[mask > 1] = 1 
-        return mask
-
-    def _read_stroke_segmentation(self, subject_id, path_patient):
-        #path_patient = _get_patient_path(path, subject_id)
-        str_subject_id = self._get_str_subject_id(subject_id)
-        
-        path_masks = glob.glob(str(path_patient)+'/'+str_subject_id +self.test_suffix) # get all the lesions
-        
-        mask = self._combine_masks(path_masks)  
-        assert np.all(np.isin(mask,self.n_classes)) # mask must have only values as in the self.n_classes
-        # convert 3D numpy array to list of 2D sparse matrices
-        # mask = [sps.csr_matrix(mask[idx]) for idx in range(np.size(mask,0))]
-        return mask  
-    
-    #######################################################  
-        
+        for subj_dir in range(self.list_subj_dirs):
+            yield self.load(subj_dir)
 
 
 # define the scores
@@ -260,7 +145,7 @@ def get_cv(X, y):
     cv = ShuffleSplit(n_splits=8, test_size=0.2, random_state=RANDOM_STATE)
     return cv.split(X, y)
 
-def _read_data(path, typ):
+def _read_data(path, dir_name):
     """
     Read and process data and labels.
     Parameters
@@ -271,6 +156,7 @@ def _read_data(path, typ):
     -------
     X, y data
     """
+    return ImageLoader(path, dir_name)
 
 def get_train_data(path="."):
     return _read_data(path, 'train')
@@ -279,101 +165,8 @@ def get_test_data(path="."):
     return _read_data(path, 'test')
 
 
-
-
-
-def _read_ids(path, split='train'):
-    # FIXME: This should be replaced by hardcoding the IDs in train and test
-    # CSV files.
-    path_metadata = os.path.join(
-        path, 'data', 'images', 'ATLAS_Meta-Data_Release_1.1_standard_mni.csv'
-    )
-    df = pd.read_csv(path_metadata)
-    # FIXME: remove the duplicate for the moment
-    ids = df['INDI Subject ID'].unique()
-    rng = np.random.RandomState(42)
-    train_id = rng.choice(ids, size=int(ids.size * 0.8), replace=False)
-    test_id = np.setdiff1d(ids, train_id, assume_unique=True)
-
-    # FIXME: return only few first IDs
-    if split == 'train':
-        return train_id[:15]
-    return test_id[:15]
-
-# FIXME: might be better to get Img id instead of Subject Id
-def _get_patient_path(path, subject_id):
-    path_metadata = os.path.join(
-        path, 'data', 'images', 'ATLAS_Meta-Data_Release_1.1_standard_mni.csv'
-    )
-    df = pd.read_csv(path_metadata)
-    # FIXME: just to take the first occurrence
-    site_dir = df[df['INDI Subject ID'] == subject_id]['INDI Site ID'].iloc[0]
-    subject_id = _get_str_subject_id(subject_id)
-    path_patient = os.path.join(
-        path, 'data', 'images', site_dir, subject_id, 't01'
-    )
-    return path_patient
-
-def _get_str_subject_id(subject_id):
-    return '{:06d}'.format(subject_id)
-
-def _read_brain_image(path, subject_id):
-    # the data will be of dimensions: #img,h,v,d
-    path_patient = _get_patient_path(path, subject_id)
-    path_brain_image = os.path.join(path_patient,
-        _get_str_subject_id(subject_id) + '_t1w_deface_stx.nii.gz'
-    )
-    return load_img(path_brain_image).get_data()
-
-def _combine_masks(path_masks):
-    mask = load_img(path_masks[0]).get_data().astype(bool)
-    for next_mask_path in path_masks[1:]:
-        mask2 = load_img(next_mask_path).get_data().astype(bool)
-        mask|=mask2
-        #mask = np.add(mask, load_img(next_mask_path).get_data())
-    mask = mask.astype(np.uint8)
-    # masks are to be only 0s for no lesion or 1s for lesion
-    #mask[mask > 1] = 1 
-    return mask
-
-def _read_stroke_segmentation(path, subject_id):
-    # the data will be of dimensions: #img,h,sparse(v,d)
-    path_patient = _get_patient_path(path, subject_id)
-    path_masks = glob.glob(str(path_patient)+'/*_LesionSmooth_*.nii.gz')
-    
-    mask = _combine_masks(path_masks)  
-
-    # convert 3D numpy array to list of 2D sparse matrices
-    # mask = [sps.csr_matrix(mask[idx]) for idx in range(np.size(mask,0))]
-    return mask  
-
-def _read_data(path, split_ids):
-    
-    X = np.stack([_read_brain_image(path, subject_id)
-                   for subject_id in split_ids])
-
-    Y = np.stack([_read_stroke_segmentation(path, subject_id)
-                   for subject_id in split_ids])
-    #return X.ravel(), Y.ravel()
-    return X, Y
-
-def get_train_data(path='.'):
-    # generate the training IDs
-    train_id = _read_ids(path, split='train')
-    #return _read_data(path, train_id)
-    return train_id
-    
-def get_test_data(path='.'):
-    # generate the testing IDs
-    test_id = _read_ids(path, split='test')
-    #return _read_data(path, test_id)
-    return test_id
-    
-
-# FIXME: when added to workflow change those lines:
-#from ..utils.importing import import_file
-import submissions.starting_kit.keras_segmentation_classifier as classifier 
-
+# import submissions.starting_kit.keras_segmentation_classifier as classifier
+'''
 class SimplifiedSegmentationClassifier(object):
     """
     SimplifiedSegmentationClassifier workflow.
@@ -397,16 +190,16 @@ class SimplifiedSegmentationClassifier(object):
         self.element_names = workflow_element_names
         self.data_file = data_file
 
-    def train_submission(self, module_path, patient_ids): 
+    def train_submission(self, module_path, patient_ids):
         """Train an image classifier.
         module_path : str
             module where the submission is. the folder of the module
             have to contain segmentation_classifier.py. (e.g. starting_kit)
         patient_idxs : ArrayContainer vector of int
              patient ids (as in the data/images/<self.data_file> file)
-             which are to be used for training. 
+             which are to be used for training
         """
-        
+
         # FIXME: when added to workflow add those lines:
         #segmentation_classifier = import_file(module_path, self.element_names[0])
         #clf = segmentation_classifier.SegmentationClassifier()
@@ -419,7 +212,7 @@ class SimplifiedSegmentationClassifier(object):
         #    del X
         #    del y_true
         #return clf
-        
+
         img_loader = ImageLoader(
             patient_ids,
             #X_array[train_is], y_array[train_is],
@@ -441,7 +234,7 @@ class SimplifiedSegmentationClassifier(object):
         """
         # get images one by one
         clf = trained_model
-        
+
         dices = np.zeros(len(patient_idxs))
         # load image one by one
         for idx, patient_id in enumerate(patient_idxs):
@@ -453,7 +246,8 @@ class SimplifiedSegmentationClassifier(object):
             del y_true
             del y_pred
         return dices
-
+'''
+'''
 import os
 from keras.layers.normalization import BatchNormalization
 from keras.layers import Input, Conv3D, MaxPooling3D, Conv3DTranspose
@@ -461,7 +255,7 @@ from keras.layers import Concatenate
 from keras import Model
 
 def fit_simple():
-    
+
     inputs = Input((197, 233, 189, 1))
     x = BatchNormalization()(inputs)
     # downsampling
@@ -496,3 +290,4 @@ def fit_simple():
     H = model.fit_generator(aug.flow(trainX, trainY, batch_size=BS),
 	validation_data=(testX, testY), steps_per_epoch=len(trainX) // BS,
 	epochs=EPOCHS)
+'''
