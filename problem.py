@@ -123,14 +123,12 @@ class ImageLoader(object):
         Total number of classes.
     """
 
-    def __init__(self, path, dir_name):
+    def __init__(self, base_dir, list_subj_dirs, file_name='T1.nii.gz'):
         """ dir_name: 'train' or 'test' """
-        self.t1_name = 'T1.nii.gz'
-        self.lesion_name = 'truth.nii.gz'
+        self.base_dir = base_dir
+        self.list_subj_dirs = list_subj_dirs
 
-        self.dir_data = os.path.join(path, dir_name)
-        self.data_type = dir_name
-        self.list_subj_dirs= os.listdir(self.dir_data)
+        self.file_name = file_name
 
     def load(self, path_patient):
         """
@@ -154,20 +152,14 @@ class ImageLoader(object):
         if not os.path.exists(path_patient):
             raise IndexError(f"{path_patient} does not exist")
 
-        path_t1 = os.path.join(path_patient, self.t1_name)
-        x = load_img(path_t1).get_data()
+        path_file = os.path.join(path_patient, self.file_name)
+        data = load_img(path_file).get_data()
 
-
-        if self.data_type == 'train':
-            path_lesion = os.path.join(path_patient, self.lesion_name)
-            y = load_img(path_lesion).get_data()
-            return x, y
-        elif self.data_type == 'test':
-            return x
+        return data
 
     def __iter__(self):
         for subj_dir in self.list_subj_dirs:
-            subj_dir_load = os.path.join(self.dir_data, subj_dir)
+            subj_dir_load = os.path.join(self.base_dir, subj_dir)
             yield self.load(subj_dir_load)
 
 
@@ -243,11 +235,22 @@ def _read_data(path, dir_name):
     -------
     X, y data
     """
-    return ImageLoader(path, dir_name)
+
+    dir_data = os.path.join(path, dir_name)
+    data_type = dir_name
+    list_subj_dirs= os.listdir(dir_data)
+
+    loader_X = ImageLoader(base_dir=dir_data,
+                           list_subj_dirs=list_subj_dirs,
+                           file_name='T1.nii.gz')
+    loader_y = ImageLoader(base_dir=dir_data,
+                           list_subj_dirs=list_subj_dirs,
+                           file_name='truth.nii.gz')
+
+    return loader_X, loader_y
 
 def get_train_data(path='.'):
     path = os.path.join(path, DATA_HOME)
-    import pdb; pdb.set_trace()
     return _read_data(path, 'train')
 
 def get_test_data(path="data"):
