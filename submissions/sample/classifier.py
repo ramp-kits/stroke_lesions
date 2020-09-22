@@ -88,12 +88,13 @@ class Classifier(BaseEstimator, ClassifierMixin, TransformerMixin):
 
     def predict_proba(self, X):
         # returns y filled with only 1s
-        y = []
-        for x_path in X:
-            # x_path is a path to data
-            x_data = load_img(x_path)
-            y.append(np.ones(x_data.shape))
-        return np.array(y)
+
+        x_path = X[0]
+        x_data = load_img(x_path)
+        x_shape = x_data.shape
+        y = np.ones((len(X), x_shape[0], x_shape[1], x_shape[2]))
+
+        return y
 
 
 def get_estimator():
