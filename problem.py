@@ -1,3 +1,4 @@
+import functools
 import glob
 import os
 import numpy as np
@@ -5,7 +6,7 @@ import pandas as pd
 import rampwf as rw
 import scipy.sparse as sps
 from nilearn.image import load_img
-from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.model_selection import ShuffleSplit
 from rampwf.prediction_types.base import BasePrediction
 
 from rampwf.score_types import BaseScoreType
@@ -40,6 +41,17 @@ class _MultiClass3d(BasePrediction):
                 'Missing init argument: y_pred, y_true, or n_samples')
         self.check_y_pred_dimensions()
 
+    def check_y_pred_dimensions(self):
+        if len(self.y_pred.shape) != 3:
+            raise ValueError(
+                'Wrong y_pred dimensions: y_pred should be 3D, '
+                'instead its shape is {}'.format(self.y_pred.shape))
+        if self.y_pred.shape != (self.x_len, self.y_len, self.z_len):
+                raise ValueError(
+                    'Wrong y_pred dimensions: y_pred should be '
+                    f'{self.x_len} x {self.y_len} x {self.z_len}'
+                    f'instead its shape is {self.y_pred.shape}')
+
     @classmethod
     def combine(cls, predictions_list, index_list=None):
         """Inherits from the base class where the scores are averaged.
@@ -70,14 +82,16 @@ class _MultiClass3d(BasePrediction):
         if len(self.y_pred.shape) == 3:
             return ~np.isnan(self.y_pred)
         else:
-            raise ValueError('y_pred.shape != 2 is not implemented')
+            raise ValueError('y_pred.shape != 3 is not implemented')
 
     '''
     @classmethod
     def combine(cls, predictions_list, index_list=None):
         """Inherits from the base class where the scores are averaged.
         Here, averaged predictions < 0.5 will be set to 0.0 and averaged
-        predictions >= 0.5 will be set to 1.0 so that `y_pred` will consist
+        predictions >= 0.5 will bexx = [(np.array([0, 1]), np.array([2])),
+          (np.array([1, 2]), np.array([0]))]
+    print(xx)set to 1.0 so that `y_pred` will consist
         only of 0.0s and 1.0s.
         """
         # call the combine from the BasePrediction
@@ -160,6 +174,11 @@ class ImageLoader(object):
     def __iter__(self):
         for subj_dir in self.list_subj_dirs:
             subj_dir_load = os.path.join(self.base_dir, subj_dir)
+            # do we also want to be able to load batches of data?
+            # from: https://pytorch.org/docs/stable/data.html
+            # for indices in batch_sampler:
+            #    yield collate_fn([dataset[i] for i in indices])
+
             yield self.load(subj_dir_load)
 
 
@@ -187,6 +206,19 @@ class DiceCoeff(BaseScoreType):
                 )*2.0) / (np.sum(y_pred) + np.sum(y_true))
         return dice
 
+
+def partial_multiclass3d(cls=_MultiClass3d, **kwds):
+    # this class partially inititates _MultiClass3d with given
+    # keywords
+    class _PartialMultiClass3d(_MultiClass3d):
+        __init__ = functools.partialmethod(cls.__init__, **kwds)
+    return _MultiClass3d
+
+
+def make_3d_classifier(x_len, y_len, z_len):
+    return partial_multiclass3d(x_len=x_len, y_len=y_len, z_len=z_len)
+
+
 # TODO: other score ideas:
 # def average_symmetric_surface_distance(y_pred, y_true):
     # ASSD: denotes the average surface distance between two segmentations
@@ -201,8 +233,8 @@ problem_title = 'Stroke Lesion Segmentation'
 #_target_column_name = 'species'
 _prediction_label_names = [0, 1]
 # A type (class) which will be used to create wrapper objects for y_pred
-Predictions = rw.prediction_types.make_multiclass(
-    label_names=_prediction_label_names)
+Predictions = make_3d_classifier(x_len=193, y_len=229, z_len=193)
+# label_names=_prediction_label_names)
 # An object implementing the workflow
 workflow = rw.workflows.Classifier()
 
@@ -221,8 +253,18 @@ score_types = [
 # cross validation
 def get_cv(X, y):
     # TODO: correct
-    cv = ShuffleSplit(n_splits=8, test_size=0.2, random_state=RANDOM_STATE)
-    return cv.split(X, y)
+    # cv = ShuffleSplit(n_splits=8, test_size=0.2, random_state=RANDOM_STATE)
+    # return cv.split(X, y)
+    X_size = sum(1 for _ in X)
+    # import pdb; pdb.set_trace()
+    xx = [(np.array([0, 1]), np.array([2])),
+          (np.array([1, 2]), np.array([0]))]
+    #[#(np.r_[0:n2], np.r_[n2:n_tot]),
+    #        (np.r_[n1:n_tot], np.r_[0:n1]),
+    #        (np.r_[0:n1, n2:n_tot], np.r_[n1:n2])]
+
+    print(xx)
+    return xx
 
 def _read_data(path, dir_name):
     """
