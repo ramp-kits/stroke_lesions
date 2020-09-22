@@ -44,15 +44,18 @@ class _MultiClass3d(BasePrediction):
         self.check_y_pred_dimensions()
 
     def check_y_pred_dimensions(self):
-        if len(self.y_pred.shape) != 3:
+        if len(self.y_pred.shape) != 4:
             raise ValueError(
-                'Wrong y_pred dimensions: y_pred should be 3D, '
-                'instead its shape is {}'.format(self.y_pred.shape))
-        if self.y_pred.shape != (self.x_len, self.y_len, self.z_len):
-                raise ValueError(
-                    'Wrong y_pred dimensions: y_pred should be '
-                    f'{self.x_len} x {self.y_len} x {self.z_len}'
-                    f'instead its shape is {self.y_pred.shape}')
+                'Wrong y_pred dimensions: y_pred should be 4D, of size:'
+                f'({self.n_samples} x {self.x_len} x {self.y_len}'
+                f' x {self.z_len})'
+                f'instead its shape is {self.y_pred.shape}')
+        if self.y_pred.shape[1:] != (self.x_len, self.y_len, self.z_len):
+            import pdb; pdb.set_trace()
+            raise ValueError(
+                'Wrong y_pred dimensions: y_pred should be'
+                f' {self.x_len} x {self.y_len} x {self.z_len}'
+                f' instead its shape is {self.y_pred.shape}')
 
     @classmethod
     def combine(cls, predictions_list, index_list=None):
@@ -115,76 +118,6 @@ class _MultiClass3d(BasePrediction):
 
         return combined_predictions
     '''
-
-
-class ImageLoader(object):
-    """
-    Load and image and optionally its segmented mask.
-    In segmentation_classifier.py, both `fit` and `predict` take as input
-    an instance of `ImageLoader`.
-    ImageLoader is used in `fit` and `predict` to either load one 3d image
-    and its corresponding segmented mask  (at training time), or one 3d image
-    (at test time).
-    Images are loaded by using the method `load`.
-    Parameters
-    ==========
-    img_ids : ArrayContainer of int
-        vector of image IDs to train on
-         (it is named X_array to be coherent with the current API,
-         but as said here, it does not represent the data itself,
-         only image IDs) corresponding to images from the given .csv file
-    folder : str
-        folder where the data_file is
-    data_file : str
-        name of the .csv file, with Img id, it's corresponding patient Id
-        (INDI Subject ID) and where this particular data stored
-    n_classes : int
-        Total number of classes.
-    """
-
-    def __init__(self, base_dir, list_subj_dirs, file_name='T1.nii.gz'):
-        """ dir_name: 'train' or 'test' """
-        self.base_dir = base_dir
-        self.list_subj_dirs = list_subj_dirs
-
-        self.file_name = file_name
-
-    def load(self, path_patient):
-        """
-        Load one image and its corresponding segmented mask (at training time),
-        or one image (at test time).
-        Parameters
-        ==========
-        path : string
-            path to the image to load
-        Returns
-        =======
-        either a tuple `(x, y)` or `x`, where:
-            - x is a numpy array of shape (height, width, depth),
-              and corresponds to the image of the requested `index`.
-            - y is a numpy array of the same shape as x, however filled only
-                with integers of n_classes
-        At training time, `y` is given, and `load` returns
-        a tuple (x, y).
-        At test time, `y` is `None`, and `load` returns `x`.
-        """
-        if not os.path.exists(path_patient):
-            raise IndexError(f"{path_patient} does not exist")
-
-        path_file = os.path.join(path_patient, self.file_name)
-        data = load_img(path_file).get_data()
-
-        return data
-
-    def __iter__(self):
-        for subj_dir in self.list_subj_dirs:
-            subj_dir_load = os.path.join(self.base_dir, subj_dir)
-            # do we also want to be able to load batches of data?
-            # from: https://pytorch.org/docs/stable/data.html
-            # for indices in batch_sampler:
-            #    yield collate_fn([dataset[i] for i in indices])
-
-            yield self.load(subj_dir_load)
 
 
 # define the scores
@@ -260,18 +193,15 @@ score_types = [
 # cross validation
 def get_cv(X, y):
     # TODO: correct
-    # cv = ShuffleSplit(n_splits=8, test_size=0.2, random_state=RANDOM_STATE)
-    # return cv.split(X, y)
+    cv = ShuffleSplit(n_splits=8, test_size=0.2, random_state=RANDOM_STATE)
+    '''
     X_size = sum(1 for _ in X)
     # import pdb; pdb.set_trace()
     xx = [(np.array([0, 1]), np.array([2])),
           (np.array([1, 2]), np.array([0]))]
-    #[#(np.r_[0:n2], np.r_[n2:n_tot]),
-    #        (np.r_[n1:n_tot], np.r_[0:n1]),
-    #        (np.r_[0:n1, n2:n_tot], np.r_[n1:n2])]
-
-    print(xx)
-    return xx
+    import pdb; pdb.set_trace()
+    '''
+    return cv.split(X, y)
 
 def _read_data(path, dir_name):
     """
@@ -289,14 +219,16 @@ def _read_data(path, dir_name):
     data_type = dir_name
     list_subj_dirs= os.listdir(dir_data)
 
-    loader_X = ImageLoader(base_dir=dir_data,
-                           list_subj_dirs=list_subj_dirs,
-                           file_name='T1.nii.gz')
-    loader_y = ImageLoader(base_dir=dir_data,
-                           list_subj_dirs=list_subj_dirs,
-                           file_name='truth.nii.gz')
+    X = [os.path.join(dir_data,
+                      subj_dir,
+                      'T1.nii.gz') for subj_dir in list_subj_dirs]
 
-    return loader_X, loader_y
+    y_paths = [os.path.join(dir_data,
+                      subj_dir,
+                      'truth.nii.gz') for subj_dir in list_subj_dirs]
+    y = [load_img(path_file).get_data() for path_file in y_paths]
+
+    return np.array(X), np.array(y)
 
 def get_train_data(path='.'):
     path = os.path.join(path, DATA_HOME)
