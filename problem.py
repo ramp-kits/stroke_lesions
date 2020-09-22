@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import rampwf as rw
 import scipy.sparse as sps
+import warnings
 from nilearn.image import load_img
 from sklearn.model_selection import ShuffleSplit
 from rampwf.prediction_types.base import BasePrediction
@@ -66,7 +67,7 @@ class _MultiClass3d(BasePrediction):
         """
         # call the combine from the BasePrediction
         combined_predictions = super(
-            _MultiOutputClassification, cls
+            _MultiClass3d, cls
             ).combine(
                 predictions_list=predictions_list,
                 index_list=index_list
@@ -83,10 +84,10 @@ class _MultiClass3d(BasePrediction):
     @property
     def valid_indexes(self):
         """Return valid indices (e.g., a cross-validation slice)."""
-        if len(self.y_pred.shape) == 3:
+        if len(self.y_pred.shape) == 4:
             return ~np.isnan(self.y_pred)
         else:
-            raise ValueError('y_pred.shape != 3 is not implemented')
+            raise ValueError('y_pred.shape != 4 is not implemented')
 
     @property
     def _y_pred_label(self):
@@ -133,15 +134,16 @@ class DiceCoeff(BaseScoreType):
         self.precision = precision
 
     def __call__(self, y_true_mask, y_pred_mask):
-        score = _dice_coeff(y_true_mask, y_pred_mask)
+        score = self._dice_coeff(y_true_mask, y_pred_mask)
+        return score
 
     def _dice_coeff(self, y_true_mask, y_pred_mask):
-        if (np.sum(y_pred)==0) & (np.sum(y_true) == 0):
+        if (np.sum(y_pred_mask)==0) & (np.sum(y_true_mask) == 0):
             return 1
         else:
             dice = (np.sum(
-                (y_pred==1) & (y_true==1)
-                )*2.0) / (np.sum(y_pred) + np.sum(y_true))
+                (y_pred_mask==1) & (y_true_mask==1)
+                )*2.0) / (np.sum(y_pred_mask) + np.sum(y_true_mask))
         return dice
 
 
@@ -171,8 +173,9 @@ def make_3dmulticlass(x_len, y_len, z_len, label_names):
 problem_title = 'Stroke Lesion Segmentation'
 #_target_column_name = 'species'
 _prediction_label_names = [0, 1]
+_x_len, _y_len, _z_len = 193, 229, 193
 # A type (class) which will be used to create wrapper objects for y_pred
-Predictions = make_3dmulticlass(x_len=193, y_len=229, z_len=193,
+Predictions = make_3dmulticlass(x_len=_x_len, y_len=_y_len, z_len=_z_len,
                                 label_names=_prediction_label_names)
 # label_names=_prediction_label_names)
 # An object implementing the workflow
@@ -217,18 +220,16 @@ def _read_data(path, dir_name):
 
     dir_data = os.path.join(path, dir_name)
     data_type = dir_name
-    list_subj_dirs= os.listdir(dir_data)
+    list_subj_dirs= os.listdir(dir_data)[:5]
+    n_samples = len(list_subj_dirs)
+    X = np.empty(n_samples, dtype='<U128')
+    y = np.empty((n_samples, _x_len, _y_len, _z_len))
+    for idx, next_subj in enumerate(list_subj_dirs):
+        X[idx] = os.path.join(dir_data, next_subj, 'T1.nii.gz')
+        y_path = os.path.join(dir_data, next_subj, 'truth.nii.gz')
+        y[idx, :] = load_img(y_path).get_data()
 
-    X = [os.path.join(dir_data,
-                      subj_dir,
-                      'T1.nii.gz') for subj_dir in list_subj_dirs]
-
-    y_paths = [os.path.join(dir_data,
-                      subj_dir,
-                      'truth.nii.gz') for subj_dir in list_subj_dirs]
-    y = [load_img(path_file).get_data() for path_file in y_paths]
-
-    return np.array(X), np.array(y)
+    return X, y
 
 def get_train_data(path='.'):
     path = os.path.join(path, DATA_HOME)
@@ -355,7 +356,7 @@ def fit_simple():
     train_suffix='_LesionSmooth_*.nii.gz'
     train_id = get_train_data(path='.')
     brain_image = _read_brain_image('.', train_id[1])
-    mask = _read_stroke_segmentation('.', train_id[1]) 
+    mask = _read_stroke_segmentation('.', train_id[1])
 
     #model.fit(brain_image[None, ..., None], mask[None, ..., None].astype(bool))
     #model.fit_on_batch
