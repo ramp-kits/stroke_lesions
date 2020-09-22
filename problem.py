@@ -19,12 +19,14 @@ RANDOM_STATE = 42
 
 
 class _MultiClass3d(BasePrediction):
-    def __init__(self, x_len, y_len, z_len,
+    # y_pred should be 3 dimensional (x_len x y_len x z_len)
+    def __init__(self, x_len, y_len, z_len, label_names,
                  y_pred=None, y_true=None, n_samples=None):
         # accepts only the predictions of classes 0 and 1
         self.x_len = x_len
         self.y_len = y_len
         self.z_len = z_len
+        self.label_names = label_names
 
         if y_pred is not None:
             self.y_pred = np.array(y_pred)
@@ -75,7 +77,6 @@ class _MultiClass3d(BasePrediction):
 
         return combined_predictions
 
-
     @property
     def valid_indexes(self):
         """Return valid indices (e.g., a cross-validation slice)."""
@@ -83,6 +84,10 @@ class _MultiClass3d(BasePrediction):
             return ~np.isnan(self.y_pred)
         else:
             raise ValueError('y_pred.shape != 3 is not implemented')
+
+    @property
+    def _y_pred_label(self):
+        return self.label_names[self.y_pred_label_index]
 
     '''
     @classmethod
@@ -207,16 +212,17 @@ class DiceCoeff(BaseScoreType):
         return dice
 
 
-def partial_multiclass3d(cls=_MultiClass3d, **kwds):
+def _partial_multiclass3d(cls=_MultiClass3d, **kwds):
     # this class partially inititates _MultiClass3d with given
     # keywords
     class _PartialMultiClass3d(_MultiClass3d):
         __init__ = functools.partialmethod(cls.__init__, **kwds)
-    return _MultiClass3d
+    return _PartialMultiClass3d
 
 
-def make_3d_classifier(x_len, y_len, z_len):
-    return partial_multiclass3d(x_len=x_len, y_len=y_len, z_len=z_len)
+def make_3dmulticlass(x_len, y_len, z_len, label_names):
+    return _partial_multiclass3d(x_len=x_len, y_len=y_len, z_len=z_len,
+                                 label_names=label_names)
 
 
 # TODO: other score ideas:
@@ -233,16 +239,17 @@ problem_title = 'Stroke Lesion Segmentation'
 #_target_column_name = 'species'
 _prediction_label_names = [0, 1]
 # A type (class) which will be used to create wrapper objects for y_pred
-Predictions = make_3d_classifier(x_len=193, y_len=229, z_len=193)
+Predictions = make_3dmulticlass(x_len=193, y_len=229, z_len=193,
+                                label_names=_prediction_label_names)
 # label_names=_prediction_label_names)
 # An object implementing the workflow
-workflow = rw.workflows.Classifier()
+workflow = rw.workflows.Classifier()  # make_multiclass()  # rw.workflows.Classifier()
 
 
 # TODO: dice coefficient
 # TODO: scoring on the time of calculations?
 score_types = [
-    rw.score_types.Accuracy(name='acc'),  # sklearn accuracy_score:
+    # rw.score_types.Accuracy(name='acc'),  # sklearn accuracy_score:
 # In multilabel classification, this function computes subset accuracy:
 # the set of labels predicted for a sample must exactly match the corresponding
 # set of labels in y_true.
