@@ -107,6 +107,7 @@ class DiceCoeff(BaseScoreType):
         return score
 
     def _dice_coeff(self, y_true_mask, y_pred_mask):
+
         if (np.sum(y_pred_mask) == 0) & (np.sum(y_true_mask) == 0):
             return 1
         else:
@@ -145,9 +146,8 @@ _x_len, _y_len, _z_len = 193, 229, 193
 # A type (class) which will be used to create wrapper objects for y_pred
 Predictions = make_3dmulticlass(x_len=_x_len, y_len=_y_len, z_len=_z_len,
                                 label_names=_prediction_label_names)
-# label_names=_prediction_label_names)
 # An object implementing the workflow
-workflow = rw.workflows.Classifier()
+workflow = rw.workflows.Estimator()
 
 
 # TODO: dice coefficient
@@ -164,7 +164,6 @@ score_types = [
 
 # cross validation
 def get_cv(X, y):
-    # TODO: correct
     cv = ShuffleSplit(n_splits=8, test_size=0.2, random_state=RANDOM_STATE)
     return cv.split(X, y)
 
@@ -182,15 +181,24 @@ def _read_data(path, dir_name):
     """
 
     dir_data = os.path.join(path, dir_name)
-    list_subj_dirs = os.listdir(dir_data)[:5]
+    list_subj_dirs = os.listdir(dir_data)
+    test = os.getenv('RAMP_TEST_MODE', 0)
+    if test:
+        # use only 5 subjects, otherwise take all
+        list_subj_dirs = list_subj_dirs[:5]
+
     n_samples = len(list_subj_dirs)
+    # we will be loading only the directory paths
     X = np.empty(n_samples, dtype='<U128')
+    # we will be loading all the lesions arrays in
     y = np.empty((n_samples, _x_len, _y_len, _z_len))
+
     for idx, next_subj in enumerate(list_subj_dirs):
         X[idx] = os.path.join(dir_data, next_subj, 'T1.nii.gz')
         y_path = os.path.join(dir_data, next_subj, 'truth.nii.gz')
         y[idx, :] = load_img(y_path).get_data()
-
+        # make sure that all the elements of y are either 0 or 1
+        assert np.all(np.in1d(y, np.array(_prediction_label_names)))
     return X, y
 
 
