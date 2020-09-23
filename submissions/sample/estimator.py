@@ -1,13 +1,9 @@
-
-import numpy as np
-from sklearn.compose import make_column_transformer
-from sklearn.multioutput import MultiOutputClassifier
 from nilearn.image import load_img
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.pipeline import Pipeline
+import numpy as np
 
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.base import ClassifierMixin
+from sklearn.pipeline import Pipeline
 
 
 class Dummy(BaseEstimator, ClassifierMixin, TransformerMixin):
