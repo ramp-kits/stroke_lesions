@@ -2,10 +2,10 @@ import os
 from osfclient.api import OSF
 
 # this script does the same as (from terminal)
-# osf -p your_password -u your_username upload local_path remote_path
+# osf -r -p your_password -u your_username upload local_path remote_path
 
-DATA_DIR = 'data/test/'  # local path to the data
-REMOTE_PATH = 'stroke/test'  # remote path where to store the data on OSF
+LOCAL_PATH = 'data/'  # local path to the data
+REMOTE_PATH = 'stroke'  # remote path where to store the data on OSF
 PROJECT_CODE = 't4uf8'  # to find your PROJECT_CODE navigate to your OSF
 # project on the web. The link will be something of this type:
 # https://osf.io/t4uf8/ , here t4uf8 is the PROJECT_CODE
@@ -23,16 +23,15 @@ store = project.storage('osfstorage')
 
 def upload_recursive_to_osf():
     # here we are only using recursive
-    if not os.path.isdir(DATA_DIR):
-        raise RuntimeError(f"Expected source ({DATA_DIR}) to be a directory")
+    if not os.path.isdir(REMOTE_PATH):
+        raise RuntimeError(f"Expected source ({REMOTE_PATH})"
+                           "to be a directory")
 
-    _, dir_name = os.path.split(DATA_DIR)
+    _, dir_name = os.path.split(REMOTE_PATH)
 
     idx = 1
-    for root, _, files in os.walk(DATA_DIR):
-        # local_source = 'data/dummy.txt'
-        # assert os.path.exists(local_source)
-        subdir_path = os.path.relpath(root, DATA_DIR)
+    for root, _, files in os.walk(REMOTE_PATH):
+        subdir_path = os.path.relpath(root, REMOTE_PATH)
         for fname in files:
             local_path = os.path.join(root, fname)
 
@@ -42,7 +41,7 @@ def upload_recursive_to_osf():
                 name = os.path.join(REMOTE_PATH, dir_name, subdir_path, fname)
                 store.create_file(name, fp, force=True)
 
-    print(f'uploaded {len(files)} files to {fname}')
+    print(f'uploaded {idx-1} files to {subdir_path}')
 
 
 if __name__ == "__main__":
