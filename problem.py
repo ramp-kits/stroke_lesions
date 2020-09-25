@@ -196,8 +196,8 @@ def _read_data(path, dir_name):
     for idx, next_subj in enumerate(list_subj_dirs):
         X[idx] = os.path.join(dir_data, next_subj, 'T1.nii.gz')
         y_path = os.path.join(dir_data, next_subj, 'truth.nii.gz')
-        y[idx, :] = load_img(y_path).get_data()
-        # make sure that all the elements of y are either 0 or 1
+        y[idx, :] = load_img(y_path).get_fdata()
+        # make sure that all the elements of y are in _prediction_label_names
         assert np.all(np.in1d(y, np.array(_prediction_label_names)))
     return X, y
 
@@ -207,6 +207,6 @@ def get_train_data(path='.'):
     return _read_data(path, 'train')
 
 
-def get_test_data(path="data"):
+def get_test_data(path="."):
     path = os.path.join(path, DATA_HOME)
     return _read_data(path, 'test')
