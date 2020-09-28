@@ -2,9 +2,9 @@ from nilearn.image import load_img
 import numpy as np
 
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.base import ClassifierMixin
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import SGDClassifier
+from sklearn.cluster import KMeans
 from skimage import filters
 
 
@@ -26,7 +26,7 @@ class FeatureExtractor(BaseEstimator, TransformerMixin):
                                     avg_subtract=True):
         """ Features for a single value of the Gaussian blurring parameter
             ``sigma``
-            simplified from code written by:
+            simplified from version written by:
                 Nicholas Esterer and Emmanuelle Gouillart
         """
         for idx, x_path in enumerate(X):
@@ -35,15 +35,17 @@ class FeatureExtractor(BaseEstimator, TransformerMixin):
             img = load_img(x_path).get_data()
             img_blur = filters.gaussian(img, sigma)
 
-            if intensity:
-                img_blur_reshaped = img_blur.reshape((1, -1))
-                features.append(img_blur_reshaped)
-            if edges:
-                features.append(filters.sobel(img_blur).reshape(1, -1))
-            #if avg_subtract:
-            #    features.append((img - self._x_avg).reshape(1, -1))
+            # intensity:
+            img_blur_reshaped = img_blur.reshape((1, -1))
+            features.append(img_blur_reshaped)
+
+            # edges:
+            features.append(filters.sobel(img_blur).reshape(1, -1))
+
+            # average subtract
+            features.append((img - self._x_avg).reshape(1, -1))
             features = np.array(features)
-            features = features.reshape((2,-1))
+            features = features.reshape((3, -1))
 
             if not idx:
                 features_x = features
@@ -59,16 +61,15 @@ class FeatureExtractor(BaseEstimator, TransformerMixin):
         features = self._singlescale_basic_features(X=X, sigma=0.2)
         return features
 
-from sklearn.linear_model import LogisticRegression
-class PointEstimator(SGDClassifier):  #, ClassifierMixin, TransformerMixin):
+
+class PointEstimator(SGDClassifier):
 
     def fit(self, X, y):
         self.img_shape = y.shape[1:]
         y = y.reshape((1, -1))
 
         # self.clf = SGDClassifier(random_state=42) # output okish
-        self.clf = LogisticRegression(random_state=42) # output 0
-        # self.clf = 
+        self.clf = KMeans(n_clusters=2)
         self.clf.fit(X.T, np.ravel(y))
         return self
 
@@ -78,13 +79,10 @@ class PointEstimator(SGDClassifier):  #, ClassifierMixin, TransformerMixin):
         y = y_pred.reshape(-1, self.img_shape[0],
                            self.img_shape[1],
                            self.img_shape[2])
-        print(np.sum(y))
-        print(np.unique(y))
         return y
 
 
 def get_estimator():
-    # sets all the masks to all 1s
 
     extractor = FeatureExtractor()
     point_estimator = PointEstimator()
