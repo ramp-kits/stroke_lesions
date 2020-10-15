@@ -9,8 +9,8 @@ REMOTE_PATH = 'stroke'  # remote path where to store the data on OSF
 PROJECT_CODE = 't4uf8'  # to find your PROJECT_CODE navigate to your OSF
 # project on the web. The link will be something of this type:
 # https://osf.io/t4uf8/ , here t4uf8 is the PROJECT_CODE
-USERNAME = ''
-PASSWORD = ''  # for uploading the data you need to give the username
+USERNAME = 'maja_ka@hotmail.com'
+PASSWORD = '4U3hEV0c'  # for uploading the data you need to give the username
 # and the password of one of the project owners
 
 # if the file already exists it will overwrite it
@@ -23,15 +23,15 @@ store = project.storage('osfstorage')
 
 def upload_recursive_to_osf():
     # here we are only using recursive
-    if not os.path.isdir(REMOTE_PATH):
-        raise RuntimeError(f"Expected source ({REMOTE_PATH})"
+    if not os.path.isdir(LOCAL_PATH):
+        raise RuntimeError(f"Expected source ({LOCAL_PATH})"
                            "to be a directory")
 
-    _, dir_name = os.path.split(REMOTE_PATH)
+    _, dir_name = os.path.split(LOCAL_PATH)
 
     idx = 1
-    for root, _, files in os.walk(REMOTE_PATH):
-        subdir_path = os.path.relpath(root, REMOTE_PATH)
+    for root, _, files in os.walk(LOCAL_PATH):
+        subdir_path = os.path.relpath(root, LOCAL_PATH)
         for fname in files:
             local_path = os.path.join(root, fname)
 
