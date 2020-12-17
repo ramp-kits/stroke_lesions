@@ -1,0 +1,32 @@
+name: ramp-stroke
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - numpy
+  - scikit-learn>=0.22
+  - scipy
+  - click
+  - pandas
+  - matplotlib
+
+  # Extra requirements
+  - tensorflow-gpu
+  - pytorch
+  - keras
+  - lightgbm
+
+  - pip
+  - pip:
+    - osfclient
+    - ramp-workflow
+    - ramp-utils
+    - pot
+    - imbalanced-learn
+
+    # Extra requirements pip
+    - gudhi
+    - xgboost
+    - catboost
+    - scikit-multilearn
+    - python-louvain
