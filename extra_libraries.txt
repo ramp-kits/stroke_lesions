@@ -1,0 +1,11 @@
+imbalanced-learn
+scipy
+tensorflow-gpu
+torch  # pytorch
+keras
+lightgbm
+gudhi
+xgboost
+catboost
+scikit-multilearn
+python-louvain

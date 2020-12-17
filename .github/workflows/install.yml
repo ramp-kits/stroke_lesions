@@ -1,0 +1,50 @@
+name: Check Extra Install
+
+on:
+  push:
+    branches:
+      - '**'
+  create:
+    branches:
+      - 'master'
+    tags:
+      - '**'
+
+jobs:
+  pip_install:
+    name: Check extra install with pip
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Pip install extra_libraries
+      run: pip install -r extra_libraries.txt
+  conda_install:
+    name: Check extra install with conda
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: s-weigand/setup-conda@v1
+    - name: Conda install environment.yml
+      run: conda env create -f environment.yml -n test_env
+
+  check_same_deps:
+    name: Check pip and conda install same env
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install dependencies
+        run: pip install pyyaml
+      - name: Check same requirements
+        run: python .github/workflows/check_deps.py
