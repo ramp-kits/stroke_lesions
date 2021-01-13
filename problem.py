@@ -130,6 +130,7 @@ def make_3dmulticlass(x_len, y_len, z_len, label_names):
                                  label_names=label_names)
 
 
+# TODO: note on other scores used in similar challenges
 # other challenges:
 # 1. Cada https://cada.grand-challenge.org/
 #  - Recall R(true positive rate, sensitivity)
@@ -174,7 +175,7 @@ def make_3dmulticlass(x_len, y_len, z_len, label_names):
 #    leaderboard score is the mean of the Dice coefficients for each image in
 #    the test set
 #
-# 5. Brats brain tumor segmentation Challenge 2002
+# 5. Brats brain tumor segmentation Challenge 2020
 #    https://www.med.upenn.edu/cbica/brats2020/data.html
 #  - the integrated score is based on the integrated data provided by the area
 #    under three curves:
@@ -184,7 +185,7 @@ def make_3dmulticlass(x_len, y_len, z_len, label_names):
 #  - score = AUC_1 + (1-AUC_2) + (1-AUC_3): score for each image
 #    will be calculated separately and then average will be taken
 #
-# 6. ISLES 2015 http://www.isles-challenge.org/
+# 6. ISLES 2015 https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5099118/
 #  Most commonly used in the compared algorithms:
 #  - Dice coeff
 #  - ASSD: denotes the average surface distance between two segmentations
@@ -238,7 +239,7 @@ def _read_data(path, dir_name):
     test = os.getenv('RAMP_TEST_MODE', 0)
     if test:
         # use only 5 subjects, otherwise take all
-        list_subj_dirs = list_subj_dirs[:5]
+        list_subj_dirs = list_subj_dirs[:3]
 
     n_samples = len(list_subj_dirs)
     # we will be loading only the directory paths

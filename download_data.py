@@ -14,7 +14,7 @@ from osfclient.api import OSF
 
 LOCAL_PATH = 'data'  # local path to the data
 REMOTE_PATH = 'stroke/'  # remote path where to store the data on OSF
-PROJECT_CODE = 't4uf8'  # to find your PROJECT_CODE navigate to your OSF
+PROJECT_CODE = ''  # to find your PROJECT_CODE navigate to your OSF
 # project on the web. The link will be something of this type:
 # https://osf.io/t4uf8/ , here t4uf8 is the PROJECT_CODE
 

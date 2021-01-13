@@ -23,6 +23,7 @@ dependencies:
     - ramp-utils
     - pot
     - imbalanced-learn
+    - nilearn
 
     # Extra requirements pip
     - gudhi
