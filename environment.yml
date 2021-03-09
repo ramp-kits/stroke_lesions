@@ -23,7 +23,6 @@ dependencies:
     - osfclient
     - ramp-workflow
     - ramp-utils
-    - pot
     - imbalanced-learn
 
     # Extra requirements pip
