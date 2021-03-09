@@ -16,6 +16,7 @@ dependencies:
   - keras
   - lightgbm
   - nilearn
+  - scikit-image>=0.18
 
   - pip
   - pip:
