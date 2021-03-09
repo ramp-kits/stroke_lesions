@@ -213,73 +213,9 @@ def make_3dmulticlass(x_len, y_len, z_len, label_names):
                                  label_names=label_names)
 
 
-# TODO: note on other scores used in similar challenges
-# other challenges:
-# 1. Cada https://cada.grand-challenge.org/
-#  - Recall R(true positive rate, sensitivity)
-#   from sklearn.metrics import average_precision_score
-#   average_precision = average_precision_score(y_test, y_score)
-#  - Precision P (positvie predictive value)
-#  - Coverage CcA of aneurysms cA by bounding boxes BB_cA
-#  - Bounding box fit F_cA (max distance of bounding box from mask along main
-#    axes of the bounding box)
-#  - in general: sensitivity, precision is an important measure.
-#  - the ranking will be based the F_2 score that combines recall R and
-#    precision P considering recall twice as important as precision. Bounding
-#    boxing only used in case of equal results
-#
-# 2. Augomated Segmentation of Coronary Arteries
-#    https://asoca.grand-challenge.org/
-#  - Dice similarity coefficient (DSC): Dice similarity Coefficient should
-#    provide a balance between the specificity and sensitivity assessment aims.
-#    It has been shown to provide a good measure of segmentation quality and is
-#    widely used in image segmenation applications. For small structures and
-#    where accurate delineation of the boundaries is imporant it is recommended
-#    to also use a distance based metric. Sice maximum Hausdorff distance is
-#    very sensitive to noice, we will be using the
-#  - 95% percentile Hausdorff Distance which tolerates small outliers
-#  - use average score of the two above
-#
-# 3. TN-SCUI2020 https://tn-scui2020.grand-challenge.org/
-#  - segmentation IoU score: IoU score is calculated by the area of the
-#    intersection of the two regions divided by the area of their union set. It
-#    is a good indicator of whether the prediction is consistent with the label
-#  - classification F1 score: the F1 score is calculated based on the precision
-#    and recall of each class. It is the weighted average of the precision and
-#    the recall scores. The F1 score reaches its perfect value at one and worst
-#    at zero. It is a very good way to show that a classifier has a good recall
-#    and precision values
-#
-# 4. Pneumothorax Segmentation
-#    https://www.kaggle.com/c/siim-acr-pneumothorax-segmentation
-#  - mean Dice coefficient: can be used to compare the pixel-wise agreement
-#    between a predicted segmentation and its corresponding ground truth. The
-#    Dice coefficient is defined to be 1 when both X and Y are empty. The
-#    leaderboard score is the mean of the Dice coefficients for each image in
-#    the test set
-#
-# 5. Brats brain tumor segmentation Challenge 2020
-#    https://www.med.upenn.edu/cbica/brats2020/data.html
-#  - the integrated score is based on the integrated data provided by the area
-#    under three curves:
-#  - Dice score
-#  - Ratio of FTP: filtered true positive.
-#  - Ratio of FTN
-#  - score = AUC_1 + (1-AUC_2) + (1-AUC_3): score for each image
-#    will be calculated separately and then average will be taken
-#
-# 6. ISLES 2015 https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5099118/
-#  Most commonly used in the compared algorithms:
-#  - Dice coeff
-#  - ASSD: denotes the average surface distance between two segmentations
-#  - hausdorff_distance
-#    a measure of the maximum surface distance, hence especially sensitive to
-#    outliers maximum of all surface distances
-
-
 problem_title = 'Stroke Lesion Segmentation'
 _prediction_label_names = [0, 1]
-_x_len, _y_len, _z_len = 193, 229, 193
+_x_len, _y_len, _z_len = 193, 229, 193  # TODO: change the dims
 # A type (class) which will be used to create wrapper objects for y_pred
 Predictions = make_3dmulticlass(x_len=_x_len, y_len=_y_len, z_len=_z_len,
                                 label_names=_prediction_label_names)
@@ -289,7 +225,7 @@ workflow = rw.workflows.Estimator()
 score_types = [
     DiceCoeff(),
     AbsoluteVolumeDifference(),
-    HausdorffDistance(),
+    # HausdorffDistance(),
     Recall(),
     Precision()
 ]
