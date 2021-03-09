@@ -20,7 +20,7 @@ RAMP_FOLDER_CONFIGURATION = {
         code='t4uf8', archive_name='public.tar.gz',
         # to findout checksum use function
         # defined below: hash_folder(folder_path)
-        data_checksum=4106263582  # TODO: to be updated
+        data_checksum=2724439915  # TODO: to be updated
     ),
     'private': dict(
         code='vw8sh', archive_name='private.tar.gz',
