@@ -15,6 +15,7 @@ dependencies:
   - pytorch
   - keras
   - lightgbm
+  - nilearn
 
   - pip
   - pip:
@@ -23,7 +24,6 @@ dependencies:
     - ramp-utils
     - pot
     - imbalanced-learn
-    - nilearn
 
     # Extra requirements pip
     - gudhi
