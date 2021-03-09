@@ -233,7 +233,13 @@ score_types = [
 
 # cross validation
 def get_cv(X, y):
-    cv = ShuffleSplit(n_splits=8, test_size=0.2, random_state=RANDOM_STATE)
+    test = os.getenv('RAMP_TEST_MODE', 0)
+    if test:
+        n_splits = 1
+    else:
+        n_splits = 8
+    cv = ShuffleSplit(n_splits=n_splits, test_size=0.2,
+                      random_state=RANDOM_STATE)
     return cv.split(X, y)
 
 
