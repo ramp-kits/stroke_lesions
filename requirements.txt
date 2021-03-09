@@ -3,7 +3,9 @@ ramp-workflow
 ramp-utils
 numpy
 scikit-learn>=0.22
+scikit-image>=0.18
 pandas
 matplotlib
+nilearn
 osfclient
 scipy
