@@ -286,18 +286,9 @@ Predictions = make_3dmulticlass(x_len=_x_len, y_len=_y_len, z_len=_z_len,
 # An object implementing the workflow
 workflow = rw.workflows.Estimator()
 
-
-# TODO: dice coefficient
-# TODO: scoring on the time of calculations?
 score_types = [
-    # rw.score_types.Accuracy(name='acc'),  # sklearn accuracy_score:
-    # In multilabel classification, this function computes subset accuracy:
-    # the set of labels predicted for a sample must exactly match the
-    # corresponding set of labels in y_true.
-    # rw.score_types.
     DiceCoeff(),
     AbsoluteVolumeDifference(),
-    DiceCoeff(),
     HausdorffDistance(),
     Recall(),
     Precision()
