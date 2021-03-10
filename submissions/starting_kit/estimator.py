@@ -3,8 +3,7 @@ import numpy as np
 
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import Pipeline
-from sklearn.linear_model import SGDClassifier
-from sklearn.cluster import MiniBatchKMeans
+from sklearn.linear_model import LogisticRegression
 
 from skimage import filters
 
@@ -63,17 +62,16 @@ class FeatureExtractor(BaseEstimator, TransformerMixin):
         return features
 
 
-class PointEstimator(SGDClassifier):
+class PointEstimator(BaseEstimator):
 
     def fit(self, X, y):
         self.img_shape = y.shape[1:]
         y = y.reshape((1, -1))
-        self.clf = MiniBatchKMeans(n_clusters=2)
-        self.clf.fit(X.T)
+        self.clf = LogisticRegression(class_weight="balanced")
+        self.clf.fit(X.T, y.ravel())
         return self
 
-    def predict_proba(self, X):
-
+    def predict(self, X):
         y_pred = self.clf.predict(X.T)
         y = y_pred.reshape(-1, self.img_shape[0],
                            self.img_shape[1],
