@@ -4,7 +4,8 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import SGDClassifier
-from sklearn.cluster import KMeans
+from sklearn.cluster import MiniBatchKMeans
+
 from skimage import filters
 
 
@@ -12,7 +13,7 @@ class FeatureExtractor(BaseEstimator, TransformerMixin):
 
     def _get_average(self, X):
         for idx, x_path in enumerate(X):
-            x_data = load_img(x_path).get_data()
+            x_data = load_img(x_path).get_fdata()
 
             if idx == 0:
                 x_avg = x_data
@@ -32,7 +33,7 @@ class FeatureExtractor(BaseEstimator, TransformerMixin):
         for idx, x_path in enumerate(X):
             features = []
             x_path = X[0]
-            img = load_img(x_path).get_data()
+            img = load_img(x_path).get_fdata()
             img_blur = filters.gaussian(img, sigma)
 
             # intensity:
@@ -67,10 +68,8 @@ class PointEstimator(SGDClassifier):
     def fit(self, X, y):
         self.img_shape = y.shape[1:]
         y = y.reshape((1, -1))
-
-        # self.clf = SGDClassifier(random_state=42) # output okish
-        self.clf = KMeans(n_clusters=2)
-        self.clf.fit(X.T, np.ravel(y))
+        self.clf = MiniBatchKMeans(n_clusters=2)
+        self.clf.fit(X.T)
         return self
 
     def predict_proba(self, X):
