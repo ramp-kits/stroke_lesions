@@ -31,7 +31,6 @@ class FeatureExtractor(BaseEstimator, TransformerMixin):
         """
         for idx, x_path in enumerate(X):
             features = []
-            x_path = X[0]
             img = load_img(x_path).get_fdata()
             img_blur = filters.gaussian(img, sigma)
 
