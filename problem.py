@@ -225,7 +225,7 @@ workflow = rw.workflows.Estimator()
 score_types = [
     DiceCoeff(),
     AbsoluteVolumeDifference(),
-    # HausdorffDistance(),
+    HausdorffDistance(),
     Recall(),
     Precision()
 ]
