@@ -1,3 +1,4 @@
+import glob
 import functools
 import os
 from nilearn.image import load_img
@@ -215,7 +216,7 @@ def make_3dmulticlass(x_len, y_len, z_len, label_names):
 
 problem_title = 'Stroke Lesion Segmentation'
 _prediction_label_names = [0, 1]
-_x_len, _y_len, _z_len = 193, 229, 193  # TODO: change the dims
+_x_len, _y_len, _z_len = 197, 233, 189  # TODO: change the dims
 # A type (class) which will be used to create wrapper objects for y_pred
 Predictions = make_3dmulticlass(x_len=_x_len, y_len=_y_len, z_len=_z_len,
                                 label_names=_prediction_label_names)
@@ -243,7 +244,7 @@ def get_cv(X, y):
     return cv.split(X, y)
 
 
-def _read_data(path, dir_name):
+def _read_data(path):
     """
     Read and process data and labels.
     Parameters
@@ -254,34 +255,31 @@ def _read_data(path, dir_name):
     -------
     X, y data
     """
+    t1_name = '*T1.nii.gz'
+    lesion_name = '_lesion.nii.gz'
+    t1_names = glob.glob(os.path.join(path, t1_name))
 
-    dir_data = os.path.join(path, dir_name)
-    list_subj_dirs = os.listdir(dir_data)
     test = os.getenv('RAMP_TEST_MODE', 0)
     if test:
-        # use only 5 subjects, otherwise take all
-        list_subj_dirs = list_subj_dirs[:3]
-
-    n_samples = len(list_subj_dirs)
-    # we will be loading only the directory paths
-    X = np.empty(n_samples, dtype='<U128')
-    # we will be loading all the lesions arrays in
+        # use only 3 subjects, otherwise take all
+        t1_names = t1_names[:3]
+    X = []
+    n_samples = len(t1_names)
     y = np.empty((n_samples, _x_len, _y_len, _z_len))
-
-    for idx, next_subj in enumerate(list_subj_dirs):
-        X[idx] = os.path.join(dir_data, next_subj, 'T1.nii.gz')
-        y_path = os.path.join(dir_data, next_subj, 'truth.nii.gz')
+    for idx, t1_next in enumerate(t1_names):
+        X.append(t1_next)
+        y_path = t1_next[:-(len(t1_name))]+lesion_name
         y[idx, :] = load_img(y_path).get_fdata()
-        # make sure that all the elements of y are in _prediction_label_names
-        assert np.all(np.in1d(y, np.array(_prediction_label_names)))
+    # make sure that all the elements of y are in _prediction_label_name
+    assert np.all(np.in1d(y, np.array(_prediction_label_names)))
     return X, y
 
 
 def get_train_data(path='.'):
     path = os.path.join(path, DATA_HOME)
-    return _read_data(path, 'train')
+    return _read_data(os.path.join(path, 'train'))
 
 
 def get_test_data(path="."):
     path = os.path.join(path, DATA_HOME)
-    return _read_data(path, 'test')
+    return _read_data(os.path.join(path, 'test'))
