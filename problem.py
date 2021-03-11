@@ -124,9 +124,9 @@ class AbsoluteVolumeDifference(BaseScoreType):
         score = np.abs(np.mean(y_true_mask) - np.mean(y_pred_mask))
 
         return score
-
-
 # -------- end of define the scores --------
+
+
 class _MultiClass3d(BasePrediction):
     # y_pred should be 3 dimensional (x_len x y_len x z_len)
     def __init__(self, x_len, y_len, z_len, label_names,
