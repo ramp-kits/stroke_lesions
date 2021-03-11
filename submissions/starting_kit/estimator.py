@@ -43,9 +43,14 @@ class FeatureExtractor(BaseEstimator, TransformerMixin):
 
             # average subtract
             features.append((img - self._x_avg).reshape(1, -1))
+            # as the last feature add the average brain
+            # this will be used to remove all 0s (supposedly what's around
+            # the brain)
+            features.append(self._x_avg.reshape(1, -1))
             features = np.array(features)
-            features = features.reshape((3, -1))
+            features = features.reshape((4, -1))
 
+            # average brain
             if not idx:
                 features_x = features
             else:
@@ -64,14 +69,26 @@ class FeatureExtractor(BaseEstimator, TransformerMixin):
 class PointEstimator(BaseEstimator):
 
     def fit(self, X, y):
+        _nonzero_indices = X[-1] != 0
+
+        # remove the last, average feature
+        _X_no_zeros = X[:-1, _nonzero_indices]
+
         self.img_shape = y.shape[1:]
         y = y.reshape((1, -1))
+        _y_no_zeros = y[:, _nonzero_indices]
         self.clf = LogisticRegression(class_weight="balanced")
-        self.clf.fit(X.T, y.ravel())
+        self.clf.fit(_X_no_zeros.T, _y_no_zeros.ravel())
         return self
 
     def predict(self, X):
-        y_pred = self.clf.predict(X.T)
+        # remove 0s from average train data (4th feature)
+        _nonzero_indices = X[-1] != 0
+        _X_no_zeros = X[:-1, _nonzero_indices]
+
+        _y_pred_no_zeros = self.clf.predict(_X_no_zeros.T)
+        y_pred = np.zeros(len(X[0]))
+        y_pred[_nonzero_indices] = _y_pred_no_zeros
         y = y_pred.reshape(-1, self.img_shape[0],
                            self.img_shape[1],
                            self.img_shape[2])
