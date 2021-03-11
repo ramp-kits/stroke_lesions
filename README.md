@@ -1,4 +1,4 @@
-# Segmentation of lesion in the MRI scans of patients after stroke
+# Lesion Segmentation in the MRI scans of patients after stroke
 RAMP starting kit
 
 <div style="text-align: center">
