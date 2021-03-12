@@ -1,13 +1,34 @@
 import numpy as np
 from sklearn.base import BaseEstimator
+from keras import backend as K
 from keras.layers.normalization import BatchNormalization
 from keras.layers import Input, Conv3D, MaxPooling3D, Conv3DTranspose
 from keras.layers import Concatenate
 from keras import Model
+from keras.optimizers import Adam
 from rampwf.workflows.image_classifier import get_nb_minibatches
 from sklearn.pipeline import Pipeline
 from nilearn.image import load_img
+from joblib import Memory
 
+mem = Memory('.')
+
+@mem.cache
+def load_img_data(fname):
+    return load_img(fname).get_fdata()
+
+def _dice_coefficient_loss(y_true, y_pred):
+    return -_dice_coefficient(y_true, y_pred)
+
+def _dice_coefficient(y_true, y_pred, smooth=1.):
+        y_true_f = K.flatten(y_true)
+        y_pred_f = K.flatten(y_pred)
+
+        intersection = K.sum(y_true_f * y_pred_f)
+
+        return ((2. * intersection + smooth) / (K.sum(y_true_f) +
+                K.sum(y_pred_f) + smooth))
+    
 
 # Using the generator pattern (an iterable)
 class ImageLoader():
@@ -24,7 +45,8 @@ class ImageLoader():
         return self.next()
 
     def load(self, img_index):
-        img = load_img(self.X_paths[img_index]).get_fdata()
+        img = load_img_data(self.X_paths[img_index])
+        print(img_index)
         if self.y is not None:
             return img, self.y[img_index]
         else:
@@ -33,7 +55,7 @@ class ImageLoader():
 
 class KerasSegmentationClassifier(BaseEstimator):
     def __init__(self, image_size):
-        self.batch_size = 1
+        self.batch_size = 6
         self.xdim, self.ydim, self.zdim = image_size
         self.model = self.model_simple()
 
@@ -104,47 +126,28 @@ class KerasSegmentationClassifier(BaseEstimator):
         self.model.fit(
             gen_train,
             steps_per_epoch=get_nb_minibatches(nb_train, self.batch_size),
-            epochs=2,
+            epochs=100,
             max_queue_size=1,
             workers=0,
             use_multiprocessing=False,
             validation_data=gen_valid,
             validation_steps=get_nb_minibatches(nb_valid, self.batch_size),
-            verbose=100
+            verbose=1
         )
 
     def model_simple(self):
         # define a simple model
         inputs = Input((self.xdim, self.ydim, self.zdim, 1))
-        x = BatchNormalization()(inputs)
-        # downsampling
-        down1conv1 = Conv3D(2, (3, 3, 3), activation='relu',
-                            padding='same')(x)
-        down1conv1 = Conv3D(2, (3, 3, 3), activation='relu',
-                            padding='same')(down1conv1)
-        down1pool = MaxPooling3D((2, 2, 2))(down1conv1)
-        # middle
-        mid_conv1 = Conv3D(2, (3, 3, 3), activation='relu',
-                           padding='same')(down1pool)
-        mid_conv1 = Conv3D(2, (3, 3, 3), activation='relu',
-                           padding='same')(mid_conv1)
-
-        # upsampling
-        up1deconv = Conv3DTranspose(2, (3, 3, 3), strides=(2, 2, 2),
-                                    activation='relu')(mid_conv1)
-        up1concat = Concatenate()([up1deconv, down1conv1])
-        up1conv1 = Conv3D(2, (3, 3, 3), activation='relu',
-                          padding='same')(up1concat)
-        up1conv1 = Conv3D(2, (3, 3, 3), activation='relu',
-                          padding='same')(up1conv1)
-        output = Conv3D(1, (3, 3, 3), activation='softmax',
-                        padding='same')(up1conv1)
-
+        down1conv1 = Conv3D(32, (6, 6, 6), activation='relu',
+                            padding='same')(inputs)
+        batch_norm = BatchNormalization()(down1conv1)
+        output = Conv3D(1, (3, 3, 3), activation='sigmoid',
+                            padding='same')(batch_norm)
         model = Model(inputs=inputs, outputs=output)
-        model.compile(optimizer='rmsprop',
-                      loss='mean_squared_error',
-                      metrics=['accuracy'])
-
+        model.compile(optimizer=Adam(lr=0.1), #'rmsprop',
+                      loss=_dice_coefficient_loss, #'mean_squared_error',
+                      metrics=[_dice_coefficient])
+        print(model.summary())
         return model
 
     def predict(self, X):
@@ -155,6 +158,7 @@ class KerasSegmentationClassifier(BaseEstimator):
             gen_test,
             batch_size=1
         )
+        y_pred = (y_pred > 0.5) * 1
         # remove the last dim
         return y_pred[..., 0]
 

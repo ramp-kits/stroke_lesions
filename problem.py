@@ -1,8 +1,9 @@
 import glob
 import functools
 import os
-from nilearn.image import load_img
 import numpy as np
+from nilearn.image import load_img
+from joblib import Memory
 import rampwf as rw
 from skimage import metrics
 from sklearn.metrics import precision_score, recall_score
@@ -15,6 +16,12 @@ from rampwf.prediction_types.base import BasePrediction
 
 DATA_HOME = 'data'
 RANDOM_STATE = 42
+
+mem = Memory('.')
+
+@mem.cache
+def load_img_data(fname):
+    return load_img(fname).get_fdata()
 
 # Author: Maria Telenczuk <https://github.com/maikia>
 # License: BSD 3 clause
@@ -226,10 +233,10 @@ workflow = rw.workflows.Estimator()
 
 score_types = [
     DiceCoeff(),
-    AbsoluteVolumeDifference(),
+    # AbsoluteVolumeDifference(),
     # HausdorffDistance(),
-    Recall(),
-    Precision()
+    # Recall(),
+    # Precision()
 ]
 
 
@@ -270,7 +277,7 @@ def _read_data(path):
     for idx, t1_next in enumerate(t1_names):
         X.append(t1_next)
         y_path = t1_next[:-(len(t1_name))] + lesion_name
-        y[idx, :] = load_img(y_path).get_fdata()
+        y[idx, :] = load_img_data(y_path)
     # make sure that all the elements of y are in _prediction_label_name
     assert np.all(np.in1d(y, np.array(_prediction_label_names)))
     return X, y
