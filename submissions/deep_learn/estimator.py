@@ -101,7 +101,7 @@ class KerasSegmentationClassifier(BaseEstimator):
             shuffle=True
         )
 
-        self.model.fit_generator(
+        self.model.fit(
             gen_train,
             steps_per_epoch=get_nb_minibatches(nb_train, self.batch_size),
             epochs=2,
