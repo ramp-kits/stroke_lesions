@@ -136,13 +136,14 @@ class _MultiClass3d(BasePrediction):
         self.y_len = y_len
         self.z_len = z_len
         self.label_names = label_names
+        self.n_samples = n_samples
 
         if y_pred is not None:
             self.y_pred = np.array(y_pred)
         elif y_true is not None:
             self.y_pred = np.array(y_true)
-        elif n_samples is not None:
-            self.y_pred = np.empty((n_samples,
+        elif self.n_samples is not None:
+            self.y_pred = np.empty((self.n_samples,
                                     self.x_len,
                                     self.y_len,
                                     self.z_len), dtype=float)
@@ -216,7 +217,7 @@ def make_3dmulticlass(x_len, y_len, z_len, label_names):
 
 problem_title = 'Stroke Lesion Segmentation'
 _prediction_label_names = [0, 1]
-_x_len, _y_len, _z_len = 197, 233, 189  # TODO: change the dims
+_x_len, _y_len, _z_len = 197, 233, 189
 # A type (class) which will be used to create wrapper objects for y_pred
 Predictions = make_3dmulticlass(x_len=_x_len, y_len=_y_len, z_len=_z_len,
                                 label_names=_prediction_label_names)
@@ -226,7 +227,7 @@ workflow = rw.workflows.Estimator()
 score_types = [
     DiceCoeff(),
     AbsoluteVolumeDifference(),
-    HausdorffDistance(),
+    # HausdorffDistance(),
     Recall(),
     Precision()
 ]
@@ -261,14 +262,14 @@ def _read_data(path):
 
     test = os.getenv('RAMP_TEST_MODE', 0)
     if test:
-        # use only 3 subjects, otherwise take all
-        t1_names = t1_names[:3]
+        # use only 5 subjects, otherwise take all
+        t1_names = t1_names[:5]
     X = []
     n_samples = len(t1_names)
     y = np.empty((n_samples, _x_len, _y_len, _z_len))
     for idx, t1_next in enumerate(t1_names):
         X.append(t1_next)
-        y_path = t1_next[:-(len(t1_name))]+lesion_name
+        y_path = t1_next[:-(len(t1_name))] + lesion_name
         y[idx, :] = load_img(y_path).get_fdata()
     # make sure that all the elements of y are in _prediction_label_name
     assert np.all(np.in1d(y, np.array(_prediction_label_names)))
