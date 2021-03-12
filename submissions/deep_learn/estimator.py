@@ -66,14 +66,13 @@ class KerasSegmentationClassifier(BaseEstimator):
         X = np.zeros((batch_size, self.xdim, self.ydim, self.zdim, 1))
         nb = img_loader.n_paths
 
-        while True:
-            for start in range(0, nb, batch_size):
-                stop = min(start + batch_size, nb)
-                bs = stop - start
-                for i, img_index in enumerate(range(start, stop)):
-                    x = img_loader.load(img_index)
-                    X[i] = x[:, :, :, np.newaxis]
-                yield X[:bs]
+        for start in range(0, nb, batch_size):
+            stop = min(start + batch_size, nb)
+            bs = stop - start
+            for i, img_index in enumerate(range(start, stop)):
+                x = img_loader.load(img_index)
+                X[i] = x[:, :, :, np.newaxis]
+            yield X[:bs]
 
     def fit(self, X, y):
 
@@ -151,10 +150,13 @@ class KerasSegmentationClassifier(BaseEstimator):
     def predict(self, X):
         img_loader = ImageLoader(X)
         gen_test = self._build_test_generator(img_loader, self.batch_size)
-        return self.model.predict(
+
+        y_pred = self.model.predict(
             gen_test,
             batch_size=1
         )
+        # remove the last dim
+        return y_pred[..., 0]
 
 
 def get_estimator():
