@@ -88,7 +88,6 @@ class KerasSegmentationClassifier(BaseEstimator):
         """
         self.batch_size = batch_size
         self.xdim, self.ydim, self.zdim = image_size
-        self.model = self.model_simple()
         self.epochs = epochs
         self.initial_learning_rate = initial_learning_rate
         self.learning_rate_drop = learning_rate_drop
@@ -99,6 +98,7 @@ class KerasSegmentationClassifier(BaseEstimator):
         else:
             self.workers = workers
         print(f'workers: {self.workers}')
+        self.model = self.model_simple()
 
     def _build_generator(self, img_loader, indices=None,
                          train=True, shuffle=False):
@@ -196,10 +196,8 @@ class KerasSegmentationClassifier(BaseEstimator):
             indices=ind_valid,
             shuffle=True
         )
-        if self.workers > 1:
-            use_multiprocessing = False
-        else:
-            use_multiprocessing = False
+        use_multiprocessing = True
+        
         self.model.fit(
             gen_train,
             steps_per_epoch=self._get_nb_minibatches(
@@ -226,9 +224,9 @@ class KerasSegmentationClassifier(BaseEstimator):
         output = Conv3D(1, (3, 3, 3), activation='sigmoid',
                         padding='same')(batch_norm)
         model = Model(inputs=inputs, outputs=output)
-        model.compile(optimizer=Adam(lr=0.1),  # 'rmsprop',
-                      loss=_dice_coefficient_loss,  # 'mean_squared_error',
-                      metrics=[_dice_coefficient])
+        model.compile(optimizer=Adam(lr=self.initial_learning_rate),
+                      loss=_dice_coefficient_loss)
+                      #metrics=[_dice_coefficient])
         print(model.summary())
         return model
 
@@ -248,12 +246,12 @@ class KerasSegmentationClassifier(BaseEstimator):
 
 def get_estimator():
     image_size = (197, 233, 189)
-    epochs = 100
+    epochs = 150
     batch_size = 2
     initial_learning_rate = 0.01
     learning_rate_drop = 0.5
-    learning_rate_patience = 10
-    early_stopping_patience = 50
+    learning_rate_patience = 5
+    early_stopping_patience = 10
     workers = 1  # -1 if you want to use all available CPUs
 
     # initiate a deep learning algorithm

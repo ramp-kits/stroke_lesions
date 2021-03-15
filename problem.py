@@ -271,7 +271,7 @@ def _read_data(path):
     test = os.getenv('RAMP_TEST_MODE', 0)
     if test:
         # use only 5 subjects, otherwise take all
-        t1_names = t1_names[:5]
+        t1_names = t1_names[:100]
     X = []
     n_samples = len(t1_names)
     y = np.empty((n_samples, _x_len, _y_len, _z_len))
