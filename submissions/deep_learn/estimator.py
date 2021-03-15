@@ -6,6 +6,8 @@ from keras.layers import Input, Conv3D
 from keras import Model
 from keras.optimizers import Adam
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
+import tensorflow as tf
+
 from rampwf.workflows.image_classifier import get_nb_minibatches
 from sklearn.pipeline import Pipeline
 from nilearn.image import load_img
@@ -62,11 +64,33 @@ class ImageLoader():
 
 
 class KerasSegmentationClassifier(BaseEstimator):
-    def __init__(self, image_size, epochs=100):
-        self.batch_size = 6
+    def __init__(self, image_size, epochs=100, initial_learning_rate=0.01,
+                 learning_rate_patience=10, early_stopping_patience=50,
+                 learning_rate_drop=0.5, batch_size=6):
+        """
+        image_size: tuple with three elements (x, y, z)
+            which are the dimensions of the images
+        epochs: int,
+            cutoff the training after this many epochs
+        initial_learning_rate: float,
+        learning_rate_patience: float,
+            learning rate will be reduced after this many epochs if
+            the validation loss is not improving
+        early_stopping_patience: float,
+            training will be stopped after this many epochs without
+            the validation loss improving
+        learning_rate_drop: float,
+            factor by which the learning rate will be reduced
+        batch_size: int
+        """
+        self.batch_size = batch_size
         self.xdim, self.ydim, self.zdim = image_size
         self.model = self.model_simple()
         self.epochs = epochs
+        self.initial_learning_rate=initial_learning_rate
+        self.learning_rate_drop=learning_rate_drop
+        self.learning_rate_patience=learning_rate_patience
+        self.early_stopping_patience=early_stopping_patience
 
     def _build_train_generator(self, img_loader, indices, batch_size=1,
                                shuffle=False):
