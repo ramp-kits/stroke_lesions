@@ -5,10 +5,17 @@ from keras.layers.normalization import BatchNormalization
 from keras.layers import Input, Conv3D
 from keras import Model
 from keras.optimizers import Adam
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from rampwf.workflows.image_classifier import get_nb_minibatches
 from sklearn.pipeline import Pipeline
 from nilearn.image import load_img
 from joblib import Memory
+gpus = tf.config.experimental.list_physical_devices('GPU')
+
+
+# avoid allocating the full GPU memory
+for gpu in gpus:
+    tf.config.experimental.set_memory_growth(gpu, True)
 
 mem = Memory('.')
 
@@ -48,7 +55,6 @@ class ImageLoader():
 
     def load(self, img_index):
         img = load_img_data(self.X_paths[img_index])
-        print(img_index)
         if self.y is not None:
             return img, self.y[img_index]
         else:
@@ -64,7 +70,9 @@ class KerasSegmentationClassifier(BaseEstimator):
 
     def _build_train_generator(self, img_loader, indices, batch_size=1,
                                shuffle=False):
-        indices = indices.copy()
+        # if indices are None it will use all the paths from the img_loader
+        if indices is not None:
+            indices = indices.copy()
 
         nb = len(indices)
         X = np.zeros((batch_size, self.xdim, self.ydim, self.zdim, 1))
@@ -99,6 +107,27 @@ class KerasSegmentationClassifier(BaseEstimator):
                 X[i] = x[:, :, :, np.newaxis]
             yield X[:bs]
 
+    def _get_callbacks(self, initial_learning_rate=0.0001,
+                       learning_rate_drop=0.5, 
+                       learning_rate_patience=10,
+                       verbosity=1, early_stopping_patience=None):
+        """
+        :param learning_rate_drop:  factor by which the learning rate
+                                    will be reduced
+        :learning_rate_patience:    learning rate will be reduced after this
+        many epochs if the validation loss is not improving
+        :early_stopping_patience: training will be stopped after this many
+        epochs without the validation loss improving
+        """
+        callbacks = list()
+        callbacks.append(ReduceLROnPlateau(factor=learning_rate_drop,
+                                            patience=learning_rate_patience,
+                                            verbose=verbosity))
+        if early_stopping_patience:
+            callbacks.append(EarlyStopping(verbose=verbosity,
+                                           patience=early_stopping_patience))
+        return callbacks
+
     def fit(self, X, y):
 
         img_loader = ImageLoader(X, y)
@@ -131,11 +160,15 @@ class KerasSegmentationClassifier(BaseEstimator):
             steps_per_epoch=get_nb_minibatches(nb_train, self.batch_size),
             epochs=self.epochs,
             max_queue_size=1,
-            workers=0,
             use_multiprocessing=False,
             validation_data=gen_valid,
             validation_steps=get_nb_minibatches(nb_valid, self.batch_size),
-            verbose=1
+            verbose=1,
+            callbacks=self._get_callbacks(
+                initial_learning_rate=0.01,
+                learning_rate_drop=0.5,
+                learning_rate_patience=10,
+                early_stopping_patience=10)
         )
 
     def model_simple(self):
