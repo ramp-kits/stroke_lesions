@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from sklearn.base import BaseEstimator
 from keras import backend as K
 from keras.layers.normalization import BatchNormalization
@@ -6,15 +7,17 @@ from keras.layers import Input, Conv3D
 from keras import Model
 from keras.optimizers import Adam
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from multiprocessing import cpu_count
 import tensorflow as tf
 
-from rampwf.workflows.image_classifier import get_nb_minibatches
 from sklearn.pipeline import Pipeline
 from nilearn.image import load_img
 from joblib import Memory
+
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+
 gpus = tf.config.experimental.list_physical_devices('GPU')
-
-
 # avoid allocating the full GPU memory
 for gpu in gpus:
     tf.config.experimental.set_memory_growth(gpu, True)
@@ -66,7 +69,7 @@ class ImageLoader():
 class KerasSegmentationClassifier(BaseEstimator):
     def __init__(self, image_size, epochs=100, initial_learning_rate=0.01,
                  learning_rate_patience=10, early_stopping_patience=50,
-                 learning_rate_drop=0.5, batch_size=6):
+                 learning_rate_drop=0.5, batch_size=2, workers=10):
         """
         image_size: tuple with three elements (x, y, z)
             which are the dimensions of the images
@@ -91,6 +94,11 @@ class KerasSegmentationClassifier(BaseEstimator):
         self.learning_rate_drop = learning_rate_drop
         self.learning_rate_patience = learning_rate_patience
         self.early_stopping_patience = early_stopping_patience
+        if workers == -1:
+            self.workers = cpu_count()
+        else:
+            self.workers = workers
+        print(f'workers: {self.workers}')
 
     def _build_generator(self, img_loader, indices=None,
                          train=True, shuffle=False):
@@ -114,13 +122,13 @@ class KerasSegmentationClassifier(BaseEstimator):
                 np.random.shuffle(indices)
             for start in range(0, nb, self.batch_size):
                 stop = min(start + self.batch_size, nb)
-                print(f'start {start}, stop {stop}')
                 # load the next minibatch in memory.
                 # The size of the minibatch is (stop - start),
                 # which is `batch_size` for the all except the last
                 # minibatch, which can either be `batch_size` if
                 # `nb` is a multiple of `batch_size`, or `nb % batch_size`.
                 bs = stop - start
+                assert bs <= self.batch_size
                 for i, img_index in enumerate(indices[start:stop]):
                     if train:
                         x, y = img_loader.load(img_index)
@@ -134,6 +142,14 @@ class KerasSegmentationClassifier(BaseEstimator):
                     yield X[:bs], Y[:bs]
                 else:
                     yield X[:bs]
+
+    def _get_nb_minibatches(self, nb_samples, batch_size):
+        """Compute the number of minibatches for keras.
+
+        See [https://keras.io/models/sequential]
+        """
+        return (nb_samples // batch_size) +\
+            (1 if (nb_samples % batch_size) > 0 else 0)
 
     def _get_callbacks(self, initial_learning_rate=0.0001,
                        learning_rate_drop=0.5,
@@ -180,21 +196,27 @@ class KerasSegmentationClassifier(BaseEstimator):
             indices=ind_valid,
             shuffle=True
         )
-
+        if self.workers > 1:
+            use_multiprocessing = True
+        else:
+            use_multiprocessing = False
         self.model.fit(
             gen_train,
-            steps_per_epoch=get_nb_minibatches(nb_train, self.batch_size),
-            epochs=self.epochs,
-            max_queue_size=1,
-            use_multiprocessing=False,
-            validation_data=gen_valid,
-            validation_steps=get_nb_minibatches(nb_valid, self.batch_size),
-            verbose=1,
-            callbacks=self._get_callbacks(
-                initial_learning_rate=0.01,
-                learning_rate_drop=0.5,
-                learning_rate_patience=10,
-                early_stopping_patience=10)
+            steps_per_epoch=self._get_nb_minibatches(
+                nb_train, self.batch_size),
+                epochs=self.epochs,
+                max_queue_size=1,
+                use_multiprocessing=use_multiprocessing,
+                validation_data=gen_valid,
+                validation_steps=self._get_nb_minibatches(
+                    nb_valid, self.batch_size),
+                verbose=1,
+                workers=self.workers,
+                callbacks=self._get_callbacks(
+                    initial_learning_rate=self.initial_learning_rate,
+                    learning_rate_drop=self.learning_rate_drop,
+                    learning_rate_patience=self.learning_rate_patience,
+                    early_stopping_patience=self.early_stopping_patience)
         )
 
     def model_simple(self):
@@ -220,6 +242,7 @@ class KerasSegmentationClassifier(BaseEstimator):
             gen_test,
             batch_size=1
         )
+        # threshold the data on 0.5; return only 1s and 0s in y_pred
         y_pred = (y_pred > 0.5) * 1
         # remove the last dim
         return y_pred[..., 0]
@@ -228,8 +251,22 @@ class KerasSegmentationClassifier(BaseEstimator):
 def get_estimator():
     image_size = (197, 233, 189)
     epochs = 100
+    batch_size = 2
+    initial_learning_rate = 0.01
+    learning_rate_drop = 0.5
+    learning_rate_patience = 10
+    early_stopping_patience = 50
+    workers = -1  # -1 if you want to use all available CPUs
+
     # initiate a deep learning algorithm
-    deep = KerasSegmentationClassifier(image_size, epochs=epochs)
+    deep = KerasSegmentationClassifier(
+        image_size, epochs=epochs, batch_size=batch_size,
+        initial_learning_rate=initial_learning_rate,
+        learning_rate_drop=learning_rate_drop,
+        learning_rate_patience=learning_rate_patience,
+        early_stopping_patience=early_stopping_patience,
+        workers=workers
+        )
 
     pipeline = Pipeline([
         ('classifier', deep)
