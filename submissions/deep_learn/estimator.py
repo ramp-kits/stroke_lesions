@@ -2,8 +2,7 @@ import numpy as np
 from sklearn.base import BaseEstimator
 from keras import backend as K
 from keras.layers.normalization import BatchNormalization
-from keras.layers import Input, Conv3D, MaxPooling3D, Conv3DTranspose
-from keras.layers import Concatenate
+from keras.layers import Input, Conv3D
 from keras import Model
 from keras.optimizers import Adam
 from rampwf.workflows.image_classifier import get_nb_minibatches
@@ -13,22 +12,25 @@ from joblib import Memory
 
 mem = Memory('.')
 
+
 @mem.cache
 def load_img_data(fname):
     return load_img(fname).get_fdata()
 
+
 def _dice_coefficient_loss(y_true, y_pred):
     return -_dice_coefficient(y_true, y_pred)
 
+
 def _dice_coefficient(y_true, y_pred, smooth=1.):
-        y_true_f = K.flatten(y_true)
-        y_pred_f = K.flatten(y_pred)
+    y_true_f = K.flatten(y_true)
+    y_pred_f = K.flatten(y_pred)
 
-        intersection = K.sum(y_true_f * y_pred_f)
+    intersection = K.sum(y_true_f * y_pred_f)
 
-        return ((2. * intersection + smooth) / (K.sum(y_true_f) +
-                K.sum(y_pred_f) + smooth))
-    
+    return ((2. * intersection + smooth) / (K.sum(y_true_f) +
+            K.sum(y_pred_f) + smooth))
+
 
 # Using the generator pattern (an iterable)
 class ImageLoader():
@@ -142,10 +144,10 @@ class KerasSegmentationClassifier(BaseEstimator):
                             padding='same')(inputs)
         batch_norm = BatchNormalization()(down1conv1)
         output = Conv3D(1, (3, 3, 3), activation='sigmoid',
-                            padding='same')(batch_norm)
+                        padding='same')(batch_norm)
         model = Model(inputs=inputs, outputs=output)
-        model.compile(optimizer=Adam(lr=0.1), #'rmsprop',
-                      loss=_dice_coefficient_loss, #'mean_squared_error',
+        model.compile(optimizer=Adam(lr=0.1),  # 'rmsprop',
+                      loss=_dice_coefficient_loss,  # 'mean_squared_error',
                       metrics=[_dice_coefficient])
         print(model.summary())
         return model
