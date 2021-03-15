@@ -26,8 +26,5 @@ dependencies:
     - imbalanced-learn
 
     # Extra requirements pip
-    - gudhi
     - xgboost
     - catboost
-    - scikit-multilearn
-    - python-louvain
