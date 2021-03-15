@@ -151,25 +151,25 @@ class KerasSegmentationClassifier(BaseEstimator):
         return (nb_samples // batch_size) +\
             (1 if (nb_samples % batch_size) > 0 else 0)
 
-    def _get_callbacks(self, initial_learning_rate=0.0001,
-                       learning_rate_drop=0.5,
-                       learning_rate_patience=10,
-                       verbosity=1, early_stopping_patience=None):
+    def _get_callbacks(self, verbosity=1):
         """
-        :param learning_rate_drop:  factor by which the learning rate
-                                    will be reduced
-        :learning_rate_patience:    learning rate will be reduced after this
-        many epochs if the validation loss is not improving
-        :early_stopping_patience: training will be stopped after this many
-        epochs without the validation loss improving
+        get callbacks for fit
         """
         callbacks = list()
-        callbacks.append(ReduceLROnPlateau(factor=learning_rate_drop,
-                                           patience=learning_rate_patience,
-                                           verbose=verbosity))
-        if early_stopping_patience:
-            callbacks.append(EarlyStopping(verbose=verbosity,
-                                           patience=early_stopping_patience))
+        callbacks.append(
+            ReduceLROnPlateau(
+                factor=self.learning_rate_drop,
+                patience=self.learning_rate_patience,
+                verbose=verbosity
+                )
+            )
+        if self.early_stopping_patience:
+            callbacks.append(
+                EarlyStopping(
+                    verbose=verbosity,
+                    patience=self.early_stopping_patience
+                    )
+                )
         return callbacks
 
     def fit(self, X, y):
@@ -197,26 +197,24 @@ class KerasSegmentationClassifier(BaseEstimator):
             shuffle=True
         )
         if self.workers > 1:
-            use_multiprocessing = True
+            use_multiprocessing = False
         else:
             use_multiprocessing = False
         self.model.fit(
             gen_train,
             steps_per_epoch=self._get_nb_minibatches(
-                nb_train, self.batch_size),
-                epochs=self.epochs,
-                max_queue_size=1,
-                use_multiprocessing=use_multiprocessing,
-                validation_data=gen_valid,
-                validation_steps=self._get_nb_minibatches(
-                    nb_valid, self.batch_size),
-                verbose=1,
-                workers=self.workers,
-                callbacks=self._get_callbacks(
-                    initial_learning_rate=self.initial_learning_rate,
-                    learning_rate_drop=self.learning_rate_drop,
-                    learning_rate_patience=self.learning_rate_patience,
-                    early_stopping_patience=self.early_stopping_patience)
+                nb_train, self.batch_size
+                ),
+            epochs=self.epochs,
+            max_queue_size=1,
+            use_multiprocessing=use_multiprocessing,
+            validation_data=gen_valid,
+            validation_steps=self._get_nb_minibatches(
+                nb_valid, self.batch_size
+                ),
+            verbose=1,
+            workers=self.workers,
+            callbacks=self._get_callbacks()
         )
 
     def model_simple(self):
@@ -256,7 +254,7 @@ def get_estimator():
     learning_rate_drop = 0.5
     learning_rate_patience = 10
     early_stopping_patience = 50
-    workers = -1  # -1 if you want to use all available CPUs
+    workers = 1  # -1 if you want to use all available CPUs
 
     # initiate a deep learning algorithm
     deep = KerasSegmentationClassifier(
