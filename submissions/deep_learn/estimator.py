@@ -56,10 +56,11 @@ class ImageLoader():
 
 
 class KerasSegmentationClassifier(BaseEstimator):
-    def __init__(self, image_size):
+    def __init__(self, image_size, epochs=100):
         self.batch_size = 6
         self.xdim, self.ydim, self.zdim = image_size
         self.model = self.model_simple()
+        self.epochs = epochs
 
     def _build_train_generator(self, img_loader, indices, batch_size=1,
                                shuffle=False):
@@ -128,7 +129,7 @@ class KerasSegmentationClassifier(BaseEstimator):
         self.model.fit(
             gen_train,
             steps_per_epoch=get_nb_minibatches(nb_train, self.batch_size),
-            epochs=100,
+            epochs=self.epochs,
             max_queue_size=1,
             workers=0,
             use_multiprocessing=False,
@@ -167,8 +168,9 @@ class KerasSegmentationClassifier(BaseEstimator):
 
 def get_estimator():
     image_size = (197, 233, 189)
+    epochs = 100
     # initiate a deep learning algorithm
-    deep = KerasSegmentationClassifier(image_size)
+    deep = KerasSegmentationClassifier(image_size, epochs=epochs)
 
     pipeline = Pipeline([
         ('classifier', deep)
