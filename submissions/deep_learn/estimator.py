@@ -108,7 +108,8 @@ class KerasSegmentationClassifier(BaseEstimator):
         if train:
             Y = np.zeros((self.batch_size, self.xdim, self.ydim, self.zdim, 1))
 
-        while True:
+        go_on = True
+        while go_on:
             if shuffle:
                 np.random.shuffle(indices)
             for start in range(0, nb, self.batch_size):
@@ -121,10 +122,14 @@ class KerasSegmentationClassifier(BaseEstimator):
                 # `nb` is a multiple of `batch_size`, or `nb % batch_size`.
                 bs = stop - start
                 for i, img_index in enumerate(indices[start:stop]):
-                    x, y = img_loader.load(img_index)
-                    X[i] = x[:, :, :, np.newaxis]
                     if train:
+                        x, y = img_loader.load(img_index)
                         Y[i] = y[:, :, :, np.newaxis]
+                    else:
+                        x = img_loader.load(img_index)
+                        X[i] = x[:, :, :, np.newaxis]
+                        go_on = False
+
                 if train:
                     yield X[:bs], Y[:bs]
                 else:
