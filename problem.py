@@ -19,6 +19,7 @@ RANDOM_STATE = 42
 
 mem = Memory('.')
 
+
 @mem.cache
 def load_img_data(fname):
     return load_img(fname).get_fdata()
