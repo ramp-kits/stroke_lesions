@@ -87,26 +87,26 @@ class KerasSegmentationClassifier(BaseEstimator):
         self.xdim, self.ydim, self.zdim = image_size
         self.model = self.model_simple()
         self.epochs = epochs
-        self.initial_learning_rate=initial_learning_rate
-        self.learning_rate_drop=learning_rate_drop
-        self.learning_rate_patience=learning_rate_patience
-        self.early_stopping_patience=early_stopping_patience
+        self.initial_learning_rate = initial_learning_rate
+        self.learning_rate_drop = learning_rate_drop
+        self.learning_rate_patience = learning_rate_patience
+        self.early_stopping_patience = early_stopping_patience
 
-    def _build_train_generator(self, img_loader, indices, batch_size=1,
+    def _build_train_generator(self, img_loader, indices,
                                shuffle=False):
         # if indices are None it will use all the paths from the img_loader
         if indices is not None:
             indices = indices.copy()
 
         nb = len(indices)
-        X = np.zeros((batch_size, self.xdim, self.ydim, self.zdim, 1))
-        Y = np.zeros((batch_size, self.xdim, self.ydim, self.zdim, 1))
+        X = np.zeros((self.batch_size, self.xdim, self.ydim, self.zdim, 1))
+        Y = np.zeros((self.batch_size, self.xdim, self.ydim, self.zdim, 1))
 
         while True:
             if shuffle:
                 np.random.shuffle(indices)
-            for start in range(0, nb, batch_size):
-                stop = min(start + batch_size, nb)
+            for start in range(0, nb, self.batch_size):
+                stop = min(start + self.batch_size, nb)
                 # load the next minibatch in memory.
                 # The size of the minibatch is (stop - start),
                 # which is `batch_size` for the all except the last
@@ -119,12 +119,12 @@ class KerasSegmentationClassifier(BaseEstimator):
                     Y[i] = y[:, :, :, np.newaxis]
                 yield X[:bs], Y[:bs]
 
-    def _build_test_generator(self, img_loader, batch_size=1):
-        X = np.zeros((batch_size, self.xdim, self.ydim, self.zdim, 1))
+    def _build_test_generator(self, img_loader):
+        X = np.zeros((self.batch_size, self.xdim, self.ydim, self.zdim, 1))
         nb = img_loader.n_paths
 
-        for start in range(0, nb, batch_size):
-            stop = min(start + batch_size, nb)
+        for start in range(0, nb, self.batch_size):
+            stop = min(start + self.batch_size, nb)
             bs = stop - start
             for i, img_index in enumerate(range(start, stop)):
                 x = img_loader.load(img_index)
@@ -132,7 +132,7 @@ class KerasSegmentationClassifier(BaseEstimator):
             yield X[:bs]
 
     def _get_callbacks(self, initial_learning_rate=0.0001,
-                       learning_rate_drop=0.5, 
+                       learning_rate_drop=0.5,
                        learning_rate_patience=10,
                        verbosity=1, early_stopping_patience=None):
         """
@@ -145,8 +145,8 @@ class KerasSegmentationClassifier(BaseEstimator):
         """
         callbacks = list()
         callbacks.append(ReduceLROnPlateau(factor=learning_rate_drop,
-                                            patience=learning_rate_patience,
-                                            verbose=verbosity))
+                                           patience=learning_rate_patience,
+                                           verbose=verbosity))
         if early_stopping_patience:
             callbacks.append(EarlyStopping(verbose=verbosity,
                                            patience=early_stopping_patience))
