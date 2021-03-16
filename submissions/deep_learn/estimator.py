@@ -3,9 +3,9 @@ import os
 from sklearn.base import BaseEstimator
 from keras import backend as K
 from keras.layers.normalization import BatchNormalization
-from keras.layers import Deconvolution3D, MaxPooling3D, UpSampling3D
+from keras.layers import MaxPooling3D, UpSampling3D
 import tensorflow as tf
-from tensorflow.keras.layers import Conv3DTranspose
+from tensorflow.keras.layers import Conv3DTranspose  # , Deconvolution3D
 from keras_contrib.layers.normalization.instancenormalization import \
     InstanceNormalization
 from keras.layers import Activation
@@ -21,8 +21,11 @@ from sklearn.pipeline import Pipeline
 from nilearn.image import load_img
 from joblib import Memory
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+physical_devices = tf.config.experimental.list_physical_devices('GPU')
+tf.config.experimental.set_memory_growth(physical_devices[0], True)
+
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 K.set_image_data_format('channels_first')
 
 gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -147,12 +150,12 @@ class KerasSegmentationClassifier(BaseEstimator):
                                  :self.zdim,
                                  np.newaxis]
                     else:
-                        x = img_loader.load(img_index)
-                        X[i] = x[:self.xdim,
-                                 :self.ydim,
-                                 :self.zdim,
-                                 np.newaxis]
                         go_on = False
+                        x = img_loader.load(img_index)
+                    X[i] = x[:self.xdim,
+                             :self.ydim,
+                             :self.zdim,
+                             np.newaxis]
 
                 if train:
                     print(f'x shape: {X.shape}, y shape: {Y.shape}')
@@ -213,7 +216,8 @@ class KerasSegmentationClassifier(BaseEstimator):
             indices=ind_valid,
             shuffle=True
         )
-        use_multiprocessing = True
+        use_multiprocessing = False
+
         self.model.fit(
             gen_train,
             steps_per_epoch=self._get_nb_minibatches(
@@ -411,12 +415,12 @@ class KerasSegmentationClassifier(BaseEstimator):
 
     def _get_up_convolution(self, n_filters, pool_size, kernel_size=(2, 2, 2),
                             strides=(2, 2, 2), deconvolution=False):
-        if deconvolution:
-            kernel_size = strides = pool_size
-            return Deconvolution3D(filters=n_filters, kernel_size=kernel_size,
-                                   strides=strides)
-        else:
-            return UpSampling3D(size=pool_size)
+        #if deconvolution:
+        #    kernel_size = strides = pool_size
+        #    return Deconvolution3D(filters=n_filters, kernel_size=kernel_size,
+        #                           strides=strides)
+        #else:
+        return UpSampling3D(size=pool_size)
 
     def predict(self, X):
         img_loader = ImageLoader(X)
@@ -436,7 +440,7 @@ def get_estimator():
     # image_size = (197, 233, 189)
     image_size = (192, 224, 176)
     epochs = 150
-    batch_size = 2
+    batch_size = 1
     initial_learning_rate = 0.01
     learning_rate_drop = 0.5
     learning_rate_patience = 5
