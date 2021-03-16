@@ -1,6 +1,6 @@
 imbalanced-learn
 scipy
-tensorflow-gpu
+tensorflow
 torch  # pytorch
 keras
 lightgbm
