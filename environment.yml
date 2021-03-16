@@ -1,6 +1,5 @@
 name: ramp-stroke
 channels:
-  - conda-forge
   - defaults
 dependencies:
   - numpy
@@ -11,6 +10,7 @@ dependencies:
   - matplotlib
 
   # Extra requirements
+  - cudatoolkit
   - tensorflow
   - pytorch
   - keras
