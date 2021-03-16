@@ -335,19 +335,19 @@ class KerasSegmentationClassifier(BaseEstimator):
             up_convolution = self._get_up_convolution(
                 pool_size=pool_size,
                 deconvolution=deconvolution,
-                n_filters=current_layer._shape[1]
+                n_filters=current_layer._keras_shape[1]
                 )(current_layer)
             concat = concatenate(
                 [up_convolution, levels[layer_depth][1]],
                 axis=1
                 )
             current_layer = self._create_convolution_block(
-                n_filters=levels[layer_depth][1]._shape[1],
+                n_filters=levels[layer_depth][1]._keras_shape[1],
                 input_layer=concat,
                 batch_normalization=batch_normalization
                 )
             current_layer = self._create_convolution_block(
-                n_filters=levels[layer_depth][1]._shape[1],
+                n_filters=levels[layer_depth][1]._keras_shape[1],
                 input_layer=current_layer,
                 batch_normalization=batch_normalization
                 )
