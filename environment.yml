@@ -1,6 +1,7 @@
-name: ramp-stroke-cf
+name: ramp-stroke
 channels:
   - conda-forge
+  - defaults
 dependencies:
   - numpy
   - scikit-learn>=0.22
