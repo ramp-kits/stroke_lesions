@@ -3,24 +3,27 @@ import os
 from sklearn.base import BaseEstimator
 from keras import backend as K
 from keras.layers.normalization import BatchNormalization
-from keras.layers import Deconvolution3D, MaxPooling3D, UpSampling3D
+from keras.layers import MaxPooling3D, UpSampling3D
+import tensorflow as tf
+from tensorflow.keras.layers import Conv3DTranspose
 from keras_contrib.layers.normalization.instancenormalization import \
     InstanceNormalization
 from keras.layers import Activation
 from keras.layers import Input, Conv3D
 from keras.layers.merge import concatenate
+from keras.layers import Concatenate
 from keras import Model
 from keras.optimizers import Adam
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from multiprocessing import cpu_count
-import tensorflow as tf
 
 from sklearn.pipeline import Pipeline
 from nilearn.image import load_img
 from joblib import Memory
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+K.set_image_data_format('channels_first')
 
 gpus = tf.config.experimental.list_physical_devices('GPU')
 # avoid allocating the full GPU memory
@@ -103,7 +106,9 @@ class KerasSegmentationClassifier(BaseEstimator):
         else:
             self.workers = workers
         print(f'workers: {self.workers}')
-        self.model = self.model_simple()
+        # self.model = self.model_simple()
+        self.model = self.unet_model_3d()
+        # self.model = self.unet_simple()
 
     def _build_generator(self, img_loader, indices=None,
                          train=True, shuffle=False):
@@ -137,13 +142,20 @@ class KerasSegmentationClassifier(BaseEstimator):
                 for i, img_index in enumerate(indices[start:stop]):
                     if train:
                         x, y = img_loader.load(img_index)
-                        Y[i] = y[:, :, :, np.newaxis]
+                        Y[i] = y[:self.xdim,
+                                 :self.ydim,
+                                 :self.zdim,
+                                 np.newaxis]
                     else:
                         x = img_loader.load(img_index)
-                        X[i] = x[:, :, :, np.newaxis]
+                        X[i] = x[:self.xdim,
+                                 :self.ydim,
+                                 :self.zdim,
+                                 np.newaxis]
                         go_on = False
 
                 if train:
+                    print(f'x shape: {X.shape}, y shape: {Y.shape}')
                     yield X[:bs], Y[:bs]
                 else:
                     yield X[:bs]
@@ -219,6 +231,39 @@ class KerasSegmentationClassifier(BaseEstimator):
             callbacks=self._get_callbacks()
         )
 
+    def unet_simple(self):
+        # define a simple model
+        inputs = Input((self.xdim, self.ydim, self.zdim, 1))
+        x = BatchNormalization()(inputs)
+        # downsampling
+        down1conv1 = Conv3D(2, (3, 3, 3), activation='relu',
+                            padding='same')(x)
+        down1conv1 = Conv3D(2, (3, 3, 3), activation='relu',
+                            padding='same')(down1conv1)
+        down1pool = MaxPooling3D((2, 2, 2))(down1conv1)
+        # middle
+        mid_conv1 = Conv3D(2, (3, 3, 3), activation='relu',
+                           padding='same')(down1pool)
+        mid_conv1 = Conv3D(2, (3, 3, 3), activation='relu',
+                           padding='same')(mid_conv1)
+
+        # upsampling
+        up1deconv = Conv3DTranspose(2, (3, 3, 3), strides=(2, 2, 2),
+                                    activation='relu')(mid_conv1)
+        up1concat = Concatenate()([up1deconv, down1conv1])
+        up1conv1 = Conv3D(2, (3, 3, 3), activation='relu',
+                          padding='same')(up1concat)
+        up1conv1 = Conv3D(2, (3, 3, 3), activation='relu',
+                          padding='same')(up1conv1)
+        output = Conv3D(1, (3, 3, 3), activation='softmax',
+                        padding='same')(up1conv1)
+
+        model = Model(inputs=inputs, outputs=output)
+        model.compile(optimizer=Adam(lr=self.initial_learning_rate),
+                      loss=_dice_coefficient_loss)
+
+        return model
+
     def model_simple(self):
         # define a simple model
         inputs = Input((self.xdim, self.ydim, self.zdim, 1))
@@ -234,19 +279,14 @@ class KerasSegmentationClassifier(BaseEstimator):
         return model
 
     def unet_model_3d(
-            self, input_shape, pool_size=(2, 2, 2), n_labels=1,
-            initial_learning_rate=0.00001, deconvolution=False,
-            depth=4, n_base_filters=32,
-            include_label_wise_dice_coefficients=False,
+            self, pool_size=(2, 2, 2), n_labels=1,
+            deconvolution=False,
+            depth=4, n_base_filters=16,
             batch_normalization=False, activation_name="sigmoid"):
         """
         Builds the 3D UNet Keras model.f
         :param metrics: List metrics to be calculated during model training
             (default is dice coefficient).
-        # Todo: remove the following:
-        :param include_label_wise_dice_coefficients: If True and n_labels is
-            greater than 1, model will report the dice coefficient for each
-            label as metric.
         :param n_base_filters: The number of filters that the first layer
             in the convolution network will have. Following layers will contain
             a multiple of this number. Lowering this number will likely reduce
@@ -261,13 +301,12 @@ class KerasSegmentationClassifier(BaseEstimator):
             of the UNet, that is pool_size^depth.
         :param pool_size: Pool size for the max pooling operations.
         :param n_labels: Number of binary labels that the model is learning.
-        :param initial_learning_rate: Initial learning rate for the model. This
-            will be decayed during training.
         :param deconvolution: If set to True, will use transpose
             convolution(deconvolution) instead of up-sampling. This increases
             the amount memory required during training.
         :return: Untrained 3D UNet Model
         """
+        input_shape = (1, self.xdim, self.ydim, self.zdim)
         inputs = Input(input_shape)
         current_layer = inputs
         levels = list()
@@ -296,19 +335,19 @@ class KerasSegmentationClassifier(BaseEstimator):
             up_convolution = self._get_up_convolution(
                 pool_size=pool_size,
                 deconvolution=deconvolution,
-                n_filters=current_layer._keras_shape[1]
+                n_filters=current_layer._shape[1]
                 )(current_layer)
             concat = concatenate(
                 [up_convolution, levels[layer_depth][1]],
                 axis=1
                 )
             current_layer = self._create_convolution_block(
-                n_filters=levels[layer_depth][1]._keras_shape[1],
+                n_filters=levels[layer_depth][1]._shape[1],
                 input_layer=concat,
                 batch_normalization=batch_normalization
                 )
             current_layer = self._create_convolution_block(
-                n_filters=levels[layer_depth][1]._keras_shape[1],
+                n_filters=levels[layer_depth][1]._shape[1],
                 input_layer=current_layer,
                 batch_normalization=batch_normalization
                 )
@@ -317,6 +356,9 @@ class KerasSegmentationClassifier(BaseEstimator):
         act = Activation(activation_name)(final_convolution)
         model = Model(inputs=inputs, outputs=act)
 
+        model.compile(optimizer=Adam(lr=self.initial_learning_rate),
+                      loss=_dice_coefficient_loss)
+        print(model.summary())
         return model
 
     def _create_convolution_block(
@@ -392,7 +434,8 @@ class KerasSegmentationClassifier(BaseEstimator):
 
 
 def get_estimator():
-    image_size = (197, 233, 189)
+    # image_size = (197, 233, 189)
+    image_size = (192, 224, 176)
     epochs = 150
     batch_size = 2
     initial_learning_rate = 0.01
