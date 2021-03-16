@@ -125,9 +125,9 @@ class KerasSegmentationClassifier(BaseEstimator):
             nb = img_loader.n_paths
             indices = range(nb)
 
-        X = np.zeros((self.batch_size, self.xdim, self.ydim, self.zdim, 1))
+        X = np.zeros((self.batch_size, 1, self.xdim, self.ydim, self.zdim))
         if train:
-            Y = np.zeros((self.batch_size, self.xdim, self.ydim, self.zdim, 1))
+            Y = np.zeros((self.batch_size, 1, self.xdim, self.ydim, self.zdim))
 
         go_on = True
         while go_on:
@@ -145,17 +145,19 @@ class KerasSegmentationClassifier(BaseEstimator):
                 for i, img_index in enumerate(indices[start:stop]):
                     if train:
                         x, y = img_loader.load(img_index)
-                        Y[i] = y[:self.xdim,
+                        Y[i] = y[np.newaxis,
+                                 :self.xdim,
                                  :self.ydim,
-                                 :self.zdim,
-                                 np.newaxis]
+                                 :self.zdim
+                                 ]
                     else:
                         go_on = False
                         x = img_loader.load(img_index)
-                    X[i] = x[:self.xdim,
+                    X[i] = x[np.newaxis,
+                             :self.xdim,
                              :self.ydim,
-                             :self.zdim,
-                             np.newaxis]
+                             :self.zdim
+                             ]
 
                 if train:
                     print(f'x shape: {X.shape}, y shape: {Y.shape}')
