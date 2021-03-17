@@ -1,6 +1,5 @@
 import itertools
 import numpy as np
-import os
 from sklearn.base import BaseEstimator
 from keras import backend as K
 from keras.layers.normalization import BatchNormalization
@@ -110,7 +109,7 @@ class KerasSegmentationClassifier(BaseEstimator):
         if patch_shape:
             self.input_shape = patch_shape
         else:
-            self.input_shape = image_shape
+            self.input_shape = image_size
 
         if workers == -1:
             self.workers = cpu_count()
@@ -133,11 +132,11 @@ class KerasSegmentationClassifier(BaseEstimator):
         return patch_index
 
     def _compute_patch_indices(self, image_shape, patch_shape):
-        ''' 
+        '''
         set not to overlap patches
         '''
         overlap = np.array([0, 0, 0])
-        
+
         n_patches = np.ceil(image_shape / (patch_shape - overlap))
         overflow = (patch_shape - overlap) * n_patches - image_shape + overlap
         start = -np.ceil(overflow/2)
@@ -151,6 +150,14 @@ class KerasSegmentationClassifier(BaseEstimator):
                      start[1]:stop[1]:step[1],
                      start[2]:stop[2]:step[2]].reshape(3, -1).T, dtype=np.int
         )
+
+    def _get_number_of_patches(self, index_list, patch_shape=None,
+                               skip_blank=True):
+        if patch_shape:
+            index_list = self._create_patch_index_list(
+                index_list, (self.xdim, self.ydim, self.zdim),
+                self.patch_shape)
+        return len(index_list)
     # ###
 
     def _build_generator(self, img_loader, indices=None,
@@ -174,6 +181,7 @@ class KerasSegmentationClassifier(BaseEstimator):
         else:
             index_list = indices.copy()
         nb = len(index_list)
+        print('in the generator nb is ', nb)
 
         X = np.zeros((self.batch_size, 1,
                       self.input_shape[0],
@@ -188,7 +196,6 @@ class KerasSegmentationClassifier(BaseEstimator):
         if shuffle:
             np.random.shuffle(index_list)
         while go_on:
-            # index = index_list.pop()
             for start in range(0, nb, self.batch_size):
                 stop = min(start + self.batch_size, nb)
                 # load the next minibatch in memory.
@@ -199,7 +206,7 @@ class KerasSegmentationClassifier(BaseEstimator):
                 bs = stop - start
                 assert bs <= self.batch_size
                 for i, img_index in enumerate(index_list[start:stop]):
-                    if self.patch_shape: 
+                    if self.patch_shape:
                         x_start, y_start, z_start = img_index[1]
                         x_len, y_len, z_len = self.patch_shape
                         idx = img_index[0]
@@ -224,7 +231,7 @@ class KerasSegmentationClassifier(BaseEstimator):
                              x_start:x_len,
                              y_start:y_len,
                              z_start:z_len
-                            ]
+                             ]
 
                 if train:
                     print(f'x shape: {X.shape}, y shape: {Y.shape}')
@@ -270,7 +277,7 @@ class KerasSegmentationClassifier(BaseEstimator):
         img_loader = ImageLoader(X, y)
         np.random.seed(42)
         nb = len(X)
-        nb_train = int(nb * 0.9) # this should be updated for the patches
+        nb_train = int(nb * 0.9)  # this will be updated for the patches
         nb_valid = nb - nb_train
 
         indices = np.arange(nb)
@@ -284,15 +291,24 @@ class KerasSegmentationClassifier(BaseEstimator):
             indices=ind_train,
             shuffle=True
         )
-
-        n_train_steps =self._get_nb_minibatches(
+        nb_train = self._get_number_of_patches(ind_train,
+                                               patch_shape=self.patch_shape,
+                                               skip_blank=True)
+        n_train_steps = self._get_nb_minibatches(
                 nb_train, self.batch_size
                 )
-        gen_valid, n_valid_steps = self._build_generator(
+        print('in fit n_train_steps', n_train_steps)
+        gen_valid = self._build_generator(
             img_loader,
             indices=ind_valid,
             shuffle=True
         )
+        nb_valid = self._get_number_of_patches(ind_valid,
+                                               patch_shape=self.patch_shape,
+                                               skip_blank=True)
+        n_valid_steps = self._get_nb_minibatches(
+                nb_valid, self.batch_size
+                )
         use_multiprocessing = False
 
         self.model.fit(
@@ -488,11 +504,11 @@ class KerasSegmentationClassifier(BaseEstimator):
 
     def _get_up_convolution(self, n_filters, pool_size, kernel_size=(2, 2, 2),
                             strides=(2, 2, 2), deconvolution=False):
-        #if deconvolution:
+        # if deconvolution:
         #    kernel_size = strides = pool_size
         #    return Deconvolution3D(filters=n_filters, kernel_size=kernel_size,
         #                           strides=strides)
-        #else:
+        # else:
         return UpSampling3D(size=pool_size)
 
     def predict(self, X):
@@ -520,11 +536,6 @@ def get_estimator():
     learning_rate_patience = 5
     early_stopping_patience = 10
     workers = 1  # -1 if you want to use all available CPUs
-    #if "patch_shape":
-    #    # 1 stands for number of channels
-    #    input_shape = tuple([1] + list(patch_shape))
-    #else:
-    #    input_shape = tuple([1] + list(image_shape))
 
     # initiate a deep learning algorithm
     deep = KerasSegmentationClassifier(
