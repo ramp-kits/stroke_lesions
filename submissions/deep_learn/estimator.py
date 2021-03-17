@@ -310,7 +310,7 @@ class KerasSegmentationClassifier(BaseEstimator):
                 nb_valid, self.batch_size
                 )
         use_multiprocessing = False
-
+        import pdb; pdb.set_trace()
         self.model.fit(
             gen_train,
             steps_per_epoch=n_train_steps,
@@ -528,7 +528,7 @@ class KerasSegmentationClassifier(BaseEstimator):
 def get_estimator():
     # image_size = (197, 233, 189)
     image_size = (192, 224, 176)
-    patch_shape = (192, 224, 9)
+    patch_shape = (192, 224, 8)
     epochs = 150
     batch_size = 1
     initial_learning_rate = 0.01
