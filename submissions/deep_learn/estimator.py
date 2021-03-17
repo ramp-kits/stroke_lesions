@@ -1,3 +1,4 @@
+import itertools
 import numpy as np
 import os
 from sklearn.base import BaseEstimator
@@ -80,7 +81,8 @@ class ImageLoader():
 class KerasSegmentationClassifier(BaseEstimator):
     def __init__(self, image_size, epochs=100, initial_learning_rate=0.01,
                  learning_rate_patience=10, early_stopping_patience=50,
-                 learning_rate_drop=0.5, batch_size=2, workers=10):
+                 learning_rate_drop=0.5, batch_size=2, workers=10,
+                 patch_shape=None):
         """
         image_size: tuple with three elements (x, y, z)
             which are the dimensions of the images
@@ -104,6 +106,7 @@ class KerasSegmentationClassifier(BaseEstimator):
         self.learning_rate_drop = learning_rate_drop
         self.learning_rate_patience = learning_rate_patience
         self.early_stopping_patience = early_stopping_patience
+        self.patch_shape = patch_shape
         if workers == -1:
             self.workers = cpu_count()
         else:
@@ -113,10 +116,44 @@ class KerasSegmentationClassifier(BaseEstimator):
         self.model = self.unet_model_3d()
         # self.model = self.unet_simple()
 
+    # this is for computing patches and their indices
+    def _create_patch_index_list(self, index_list, image_shape, patch_shape):
+        ''' returns list of tuples with index and array of start indices for
+        the patch
+        '''
+        patch_index = list()
+        for index in index_list:
+            patches = self._compute_patch_indices(image_shape, patch_shape)
+            patch_index.extend(itertools.product([index], patches))
+        return patch_index
+
+    def _compute_patch_indices(self, image_shape, patch_shape):
+        ''' 
+        set not to overlap patches
+        '''
+        overlap = np.array([0, 0, 0])
+        
+        n_patches = np.ceil(image_shape / (patch_shape - overlap))
+        overflow = (patch_shape - overlap) * n_patches - image_shape + overlap
+        start = -np.ceil(overflow/2)
+        stop = image_shape + start
+        step = patch_shape - overlap
+        return self._get_set_of_patch_indices(start, stop, step)
+
+    def _get_set_of_patch_indices(self, start, stop, step):
+        return np.asarray(
+            np.mgrid[start[0]:stop[0]:step[0],
+                     start[1]:stop[1]:step[1],
+                     start[2]:stop[2]:step[2]].reshape(3, -1).T, dtype=np.int
+        )
+    # ###
+
     def _build_generator(self, img_loader, indices=None,
                          train=True, shuffle=False):
         """
         set train to False if you use it for test
+        if patch_shape is not None the images will be split to patches of given
+            size
         """
         if indices is not None:
             indices = indices.copy()
@@ -124,6 +161,13 @@ class KerasSegmentationClassifier(BaseEstimator):
         else:
             nb = img_loader.n_paths
             indices = range(nb)
+
+        if self.patch_shape:
+            orig_index_list = indices
+            index_list = self._create_patch_index_list(
+                orig_index_list, (self.xdim, self.ydim, self.zdim),
+                self.patch_shape)
+                # patch_overlap, patch_start_offset)
 
         X = np.zeros((self.batch_size, 1, self.xdim, self.ydim, self.zdim))
         if train:
@@ -441,6 +485,7 @@ class KerasSegmentationClassifier(BaseEstimator):
 def get_estimator():
     # image_size = (197, 233, 189)
     image_size = (192, 224, 176)
+    patch_shape = (192, 224, 9)
     epochs = 150
     batch_size = 1
     initial_learning_rate = 0.01
@@ -448,6 +493,10 @@ def get_estimator():
     learning_rate_patience = 5
     early_stopping_patience = 10
     workers = 1  # -1 if you want to use all available CPUs
+    if "patch_shape":
+        input_shape = tuple([1 + list(patch_shape))
+    else:
+        input_shape = tuple(1 + list(image_shape))
 
     # initiate a deep learning algorithm
     deep = KerasSegmentationClassifier(
@@ -456,7 +505,7 @@ def get_estimator():
         learning_rate_drop=learning_rate_drop,
         learning_rate_patience=learning_rate_patience,
         early_stopping_patience=early_stopping_patience,
-        workers=workers
+        workers=workers, patch_shape=patch_shape
         )
 
     pipeline = Pipeline([
