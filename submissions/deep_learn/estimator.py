@@ -76,6 +76,10 @@ class ImageLoader():
         else:
             return img
 
+    def load_y(self, img_index):
+        assert self.y is not None
+        return self.y[img_index]            
+
 
 class KerasSegmentationClassifier(BaseEstimator):
     def __init__(self, image_size, epochs=100, initial_learning_rate=0.01,
@@ -106,6 +110,7 @@ class KerasSegmentationClassifier(BaseEstimator):
         self.learning_rate_patience = learning_rate_patience
         self.early_stopping_patience = early_stopping_patience
         self.patch_shape = patch_shape
+        self.skip_blank = True
         if patch_shape:
             self.input_shape = patch_shape
         else:
@@ -115,10 +120,7 @@ class KerasSegmentationClassifier(BaseEstimator):
             self.workers = cpu_count()
         else:
             self.workers = workers
-        print(f'workers: {self.workers}')
-        # self.model = self.model_simple()
         self.model = self.unet_model_3d()
-        # self.model = self.unet_simple()
 
     # this is for computing patches and their indices
     def _create_patch_index_list(self, index_list, image_shape, patch_shape):
@@ -151,14 +153,48 @@ class KerasSegmentationClassifier(BaseEstimator):
                      start[2]:stop[2]:step[2]].reshape(3, -1).T, dtype=np.int
         )
 
-    def _get_number_of_patches(self, index_list, patch_shape=None,
-                               skip_blank=True):
+    def _get_number_of_patches(self, index_list, img_loader=None,
+                               patch_shape=None):
+        ''' img_loader cannot be None if self.skip_blank is True'''
         if patch_shape:
             index_list = self._create_patch_index_list(
                 index_list, (self.xdim, self.ydim, self.zdim),
                 self.patch_shape)
+           
+                
         return len(index_list)
     # ###
+
+    def _prepare_patches(self, img_loader, indices):
+        if indices is not None:
+            indices = indices.copy()
+        else:
+            indices = range(img_loader.n_paths)
+
+        if self.patch_shape:
+            orig_index_list = indices
+            index_list = self._create_patch_index_list(
+                orig_index_list, (self.xdim, self.ydim, self.zdim),
+                self.patch_shape)
+        else:
+            index_list = indices.copy()
+        if self.skip_blank:
+            # it will take much longer, each image will be loaded to memory
+            # and each patch will be tested if it corresponds to the lesion
+            # or not
+            for idx in index_list:
+                y_patch = img_loader.load_y(idx[0])
+                y_patch = y_patch[idx[1][0]:idx[1][0] + self.patch_shape[0],
+                                  idx[1][1]:idx[1][1] + self.patch_shape[1],
+                                  idx[1][2]:idx[1][2] + self.patch_shape[2]
+                ]
+                if len(np.unique(y_patch)) != 2:
+                    import pdb; pdb.set_trace()
+                    index_list.remove(idx)
+        import pdb; pdb.set_trace()
+        nb = len(index_list)
+        return nb, index_list
+
 
     def _build_generator(self, img_loader, indices=None,
                          train=True, shuffle=False):
@@ -167,7 +203,7 @@ class KerasSegmentationClassifier(BaseEstimator):
         if patch_shape is not None the images will be split to patches of given
             size
         """
-
+        '''
         if indices is not None:
             indices = indices.copy()
         else:
@@ -181,8 +217,8 @@ class KerasSegmentationClassifier(BaseEstimator):
         else:
             index_list = indices.copy()
         nb = len(index_list)
-        print('in the generator nb is ', nb)
-
+        '''
+        nb = len(indices)
         X = np.zeros((self.batch_size, 1,
                       self.input_shape[0],
                       self.input_shape[1],
@@ -194,7 +230,7 @@ class KerasSegmentationClassifier(BaseEstimator):
                           self.input_shape[2]))
         go_on = True
         if shuffle:
-            np.random.shuffle(index_list)
+            np.random.shuffle(indices)
         while go_on:
             for start in range(0, nb, self.batch_size):
                 stop = min(start + self.batch_size, nb)
@@ -205,7 +241,7 @@ class KerasSegmentationClassifier(BaseEstimator):
                 # `nb` is a multiple of `batch_size`, or `nb % batch_size`.
                 bs = stop - start
                 assert bs <= self.batch_size
-                for i, img_index in enumerate(index_list[start:stop]):
+                for i, img_index in enumerate(indices[start:stop]):
                     if self.patch_shape:
                         x_start, y_start, z_start = img_index[1]
                         x_len, y_len, z_len = self.patch_shape
@@ -227,17 +263,18 @@ class KerasSegmentationClassifier(BaseEstimator):
                     else:
                         go_on = False
                         x = img_loader.load(img_index)
+                    if self.skip_blank:
+                        assert len(np.unique(Y[i])) == 2  # 0 and 1
                     X[i] = x[np.newaxis,
                              x_start:x_len,
                              y_start:y_len,
                              z_start:z_len
                              ]
-
                 if train:
-                    print(f'x shape: {X.shape}, y shape: {Y.shape}')
-                    yield X[:bs], Y[:bs]
+                      # in case final batch is not full
+                    yield X[:bs, :], Y[:bs, :]
                 else:
-                    yield X[:bs]
+                    yield X[:bs, :]
 
     def _get_nb_minibatches(self, nb_samples, batch_size):
         """Compute the number of minibatches for keras.
@@ -286,31 +323,32 @@ class KerasSegmentationClassifier(BaseEstimator):
         ind_train = indices[0: nb_train]
         ind_valid = indices[nb_train:]
 
+        nb_train, idx_train = self._prepare_patches(img_loader, ind_train)
         gen_train = self._build_generator(
             img_loader,
-            indices=ind_train,
+            indices=idx_train,
             shuffle=True
         )
-        nb_train = self._get_number_of_patches(ind_train,
-                                               patch_shape=self.patch_shape,
-                                               skip_blank=True)
+        #nb_train = self._get_number_of_patches(ind_train,
+        #                                       patch_shape=self.patch_shape,
+        #                                       skip_blank=True)
         n_train_steps = self._get_nb_minibatches(
                 nb_train, self.batch_size
                 )
-        print('in fit n_train_steps', n_train_steps)
+
+        nb_valid, idx_valid = self._prepare_patches(img_loader, ind_valid)
         gen_valid = self._build_generator(
             img_loader,
-            indices=ind_valid,
+            indices=idx_valid,
             shuffle=True
         )
-        nb_valid = self._get_number_of_patches(ind_valid,
-                                               patch_shape=self.patch_shape,
-                                               skip_blank=True)
+        #nb_valid = self._get_number_of_patches(ind_valid,
+        #                                       patch_shape=self.patch_shape,
+        #                                       skip_blank=True)
         n_valid_steps = self._get_nb_minibatches(
                 nb_valid, self.batch_size
                 )
         use_multiprocessing = False
-        import pdb; pdb.set_trace()
         self.model.fit(
             gen_train,
             steps_per_epoch=n_train_steps,
@@ -319,7 +357,7 @@ class KerasSegmentationClassifier(BaseEstimator):
             use_multiprocessing=use_multiprocessing,
             validation_data=gen_valid,
             validation_steps=n_valid_steps,
-            verbose=1,
+            verbose=2,
             workers=self.workers,
             callbacks=self._get_callbacks()
         )
@@ -399,7 +437,7 @@ class KerasSegmentationClassifier(BaseEstimator):
             the amount memory required during training.
         :return: Untrained 3D UNet Model
         """
-        input_shape = (1, self.xdim, self.ydim, self.zdim)
+        input_shape = (1,) + self.patch_shape
         inputs = Input(input_shape)
         current_layer = inputs
         levels = list()
@@ -509,7 +547,7 @@ class KerasSegmentationClassifier(BaseEstimator):
         #    return Deconvolution3D(filters=n_filters, kernel_size=kernel_size,
         #                           strides=strides)
         # else:
-        return UpSampling3D(size=pool_size)
+        return UpSampling3D(size=pool_size, data_format='channels_first')
 
     def predict(self, X):
         img_loader = ImageLoader(X)
