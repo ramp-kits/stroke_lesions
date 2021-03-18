@@ -187,22 +187,7 @@ class KerasSegmentationClassifier(BaseEstimator):
         if patch_shape is not None the images will be split to patches of given
             size
         """
-        '''
-        if indices is not None:
-            indices = indices.copy()
-        else:
-            indices = range(img_loader.n_paths)
 
-        if self.patch_shape:
-            orig_index_list = indices
-            index_list = self._create_patch_index_list(
-                orig_index_list, (self.xdim, self.ydim, self.zdim),
-                self.patch_shape)
-        else:
-            index_list = indices.copy()
-        nb = len(index_list)
-        '''
-        nb = len(indices)
         X = np.zeros((self.batch_size, 1,
                       self.input_shape[0],
                       self.input_shape[1],
@@ -212,9 +197,16 @@ class KerasSegmentationClassifier(BaseEstimator):
                           self.input_shape[0],
                           self.input_shape[1],
                           self.input_shape[2]))
-        go_on = True
+         
+        if indices is None:
+            nb = len(X)
+            indices = range(img_loader.n_paths)
+        else:
+            nb = len(indices)
         if shuffle:
             np.random.shuffle(indices)
+        go_on = True
+
         while go_on:
             for start in range(0, nb, self.batch_size):
                 stop = min(start + self.batch_size, nb)
@@ -234,6 +226,7 @@ class KerasSegmentationClassifier(BaseEstimator):
                         x_start, y_start, z_start = 0, 0, 0
                         x_len, y_len, z_len = self.image_size
                         idx = img_index
+                    print('idx is ', idx)
                     x_len += x_start
                     y_len += y_start
                     z_len += z_start
@@ -247,6 +240,7 @@ class KerasSegmentationClassifier(BaseEstimator):
                     else:
                         go_on = False
                         x = img_loader.load(img_index)
+
                     if self.skip_blank:
                         assert len(np.unique(Y[i])) == 2  # 0 and 1
                     X[i] = x[np.newaxis,
@@ -255,7 +249,7 @@ class KerasSegmentationClassifier(BaseEstimator):
                              z_start:z_len
                              ]
                 if train:
-                    # in case final batch is not full
+                    # in case final batch is not full need to slice
                     yield X[:bs, :], Y[:bs, :]
                 else:
                     yield X[:bs, :]

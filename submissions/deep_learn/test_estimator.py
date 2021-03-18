@@ -58,13 +58,38 @@ def test_image_loader(data):
     assert np.all(y[1, :] == y2)
 
 
-def test_generator_correct_data_shape(init_est, data):
-    """ """
+def test_generator_correct_output(init_est, data):
+    """ it checks if generator lead to the correct output if shuffle is set to
+    False and there are no patches (full images)"""
     X, y = data
+    init_est.image_size = (197, 233, 189)  # use original image size
+    # imitate estimator with now patches
     init_est.patch_shape = None
+    init_est.input_shape = init_est.image_size
+    init_est.skip_blank = False
+
+
     img_loader = estimator.ImageLoader(X, y)
-    init_est._build_generator()
-    import pdb; pdb.set_trace()
+    generator = init_est._build_generator(img_loader, shuffle=False)
+    x1, y1 = next(generator)
+    assert np.all(x1.shape == y1.shape)
+    assert len(np.unique(x1)) > 2
+    assert len(np.unique(y1)) in [1, 2]  # TODO: if training on the whole image
+    # or with skip_blank set to true it should always be 2
+    assert np.all(y1[0, 0, ...] == y[0])
+    x2, y2 = next(generator)
+    assert not np.all(x1 == x2)
+    assert not np.all(y1 == y2)
+    assert len(np.unique(x2)) > 2
+    assert np.all(y2[0, 0, ...] == y[1])
+    
+    x3, y3 = next(generator)
+    assert np.all(x1 == x3)
+    assert np.all(y1 == y3)
+
+    x4, y4 = next(generator)
+    assert np.all(x2 == x4)
+    assert np.all(y2 == y4)
 
 
 def test_n_steps_correct():
