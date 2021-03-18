@@ -103,7 +103,8 @@ class KerasSegmentationClassifier(BaseEstimator):
         batch_size: int
         """
         self.batch_size = batch_size
-        self.xdim, self.ydim, self.zdim = image_size
+        # self.xdim, self.ydim, self.zdim = image_size
+        self.image_size = image_size
         self.epochs = epochs
         self.initial_learning_rate = initial_learning_rate
         self.learning_rate_drop = learning_rate_drop
@@ -123,30 +124,29 @@ class KerasSegmentationClassifier(BaseEstimator):
         self.model = self.unet_model_3d()
 
     # this is for computing patches and their indices
-    def _create_patch_index_list(self, index_list, image_shape, patch_shape):
+    def _create_patch_index_list(self, index_list):
         ''' returns list of tuples with index and array of start indices for
         the patch
         '''
         patch_index = list()
         for index in index_list:
-            patches = self._compute_patch_indices(image_shape, patch_shape)
+            patches = self._compute_patch_indices()
             patch_index.extend(itertools.product([index], patches))
         return patch_index
 
-    def _compute_patch_indices(self, image_shape, patch_shape):
+    def _compute_patch_indices(self):
         '''
         set not to overlap patches
         '''
         overlap = np.array([0, 0, 0])
 
-        n_patches = np.ceil(image_shape / (patch_shape - overlap))
-        overflow = (patch_shape - overlap) * n_patches - image_shape + overlap
+        n_patches = np.ceil(self.image_size / (self.patch_shape - overlap))
+        overflow = (self.patch_shape - overlap) *\
+            n_patches - self.image_size + overlap
         start = -np.ceil(overflow/2)
-        stop = image_shape + start
-        step = patch_shape - overlap
-        return self._get_set_of_patch_indices(start, stop, step)
-
-    def _get_set_of_patch_indices(self, start, stop, step):
+        stop = self.image_size + start
+        step = self.patch_shape - overlap
+        # return set of patch indices
         return np.asarray(
             np.mgrid[start[0]:stop[0]:step[0],
                      start[1]:stop[1]:step[1],
@@ -161,10 +161,7 @@ class KerasSegmentationClassifier(BaseEstimator):
             indices = range(img_loader.n_paths)
 
         if self.patch_shape:
-            orig_index_list = indices
-            index_list = self._create_patch_index_list(
-                orig_index_list, (self.xdim, self.ydim, self.zdim),
-                self.patch_shape)
+            index_list = self._create_patch_index_list(indices)
         else:
             index_list = indices.copy()
         if self.skip_blank:
@@ -235,7 +232,7 @@ class KerasSegmentationClassifier(BaseEstimator):
                         idx = img_index[0]
                     else:
                         x_start, y_start, z_start = 0, 0, 0
-                        x_len, y_len, z_len = self.xdim, self.ydim, self.zdim
+                        x_len, y_len, z_len = self.image_size
                         idx = img_index
                     x_len += x_start
                     y_len += y_start
@@ -348,7 +345,7 @@ class KerasSegmentationClassifier(BaseEstimator):
 
     def unet_simple(self):
         # define a simple model
-        inputs = Input((self.xdim, self.ydim, self.zdim, 1))
+        inputs = Input(self.image_size + (1,))
         x = BatchNormalization()(inputs)
         # downsampling
         down1conv1 = Conv3D(2, (3, 3, 3), activation='relu',
@@ -381,7 +378,7 @@ class KerasSegmentationClassifier(BaseEstimator):
 
     def model_simple(self):
         # define a simple model
-        inputs = Input((self.xdim, self.ydim, self.zdim, 1))
+        inputs = Input(self.image_size + (1,))
         down1conv1 = Conv3D(32, (6, 6, 6), activation='relu',
                             padding='same')(inputs)
         batch_norm = BatchNormalization()(down1conv1)
@@ -543,7 +540,8 @@ class KerasSegmentationClassifier(BaseEstimator):
         )
         # threshold the data on 0.5; return only 1s and 0s in y_pred
         y_pred = (y_pred > 0.5) * 1
-        # remove the last dim
+        # remove the last dimension
+        # TODO: check if it is indeed the last dim that should be removed
         return y_pred[..., 0]
 
 
