@@ -78,7 +78,7 @@ class ImageLoader():
 
     def load_y(self, img_index):
         assert self.y is not None
-        return self.y[img_index]            
+        return self.y[img_index]
 
 
 class KerasSegmentationClassifier(BaseEstimator):
@@ -152,17 +152,6 @@ class KerasSegmentationClassifier(BaseEstimator):
                      start[1]:stop[1]:step[1],
                      start[2]:stop[2]:step[2]].reshape(3, -1).T, dtype=np.int
         )
-
-    def _get_number_of_patches(self, index_list, img_loader=None,
-                               patch_shape=None):
-        ''' img_loader cannot be None if self.skip_blank is True'''
-        if patch_shape:
-            index_list = self._create_patch_index_list(
-                index_list, (self.xdim, self.ydim, self.zdim),
-                self.patch_shape)
-           
-                
-        return len(index_list)
     # ###
 
     def _prepare_patches(self, img_loader, indices):
@@ -179,6 +168,7 @@ class KerasSegmentationClassifier(BaseEstimator):
         else:
             index_list = indices.copy()
         if self.skip_blank:
+            index_list_skip_blank = []
             # it will take much longer, each image will be loaded to memory
             # and each patch will be tested if it corresponds to the lesion
             # or not
@@ -187,14 +177,11 @@ class KerasSegmentationClassifier(BaseEstimator):
                 y_patch = y_patch[idx[1][0]:idx[1][0] + self.patch_shape[0],
                                   idx[1][1]:idx[1][1] + self.patch_shape[1],
                                   idx[1][2]:idx[1][2] + self.patch_shape[2]
-                ]
-                if len(np.unique(y_patch)) != 2:
-                    import pdb; pdb.set_trace()
-                    index_list.remove(idx)
-        import pdb; pdb.set_trace()
-        nb = len(index_list)
-        return nb, index_list
-
+                                  ]
+                if len(np.unique(y_patch)) == 2:
+                    index_list_skip_blank.append(idx)
+            return index_list_skip_blank
+        return index_list
 
     def _build_generator(self, img_loader, indices=None,
                          train=True, shuffle=False):
@@ -271,7 +258,7 @@ class KerasSegmentationClassifier(BaseEstimator):
                              z_start:z_len
                              ]
                 if train:
-                      # in case final batch is not full
+                    # in case final batch is not full
                     yield X[:bs, :], Y[:bs, :]
                 else:
                     yield X[:bs, :]
@@ -323,31 +310,28 @@ class KerasSegmentationClassifier(BaseEstimator):
         ind_train = indices[0: nb_train]
         ind_valid = indices[nb_train:]
 
-        nb_train, idx_train = self._prepare_patches(img_loader, ind_train)
+        idx_train = self._prepare_patches(img_loader, ind_train)
+        nb_train = len(idx_train)
         gen_train = self._build_generator(
             img_loader,
             indices=idx_train,
             shuffle=True
         )
-        #nb_train = self._get_number_of_patches(ind_train,
-        #                                       patch_shape=self.patch_shape,
-        #                                       skip_blank=True)
         n_train_steps = self._get_nb_minibatches(
                 nb_train, self.batch_size
                 )
 
-        nb_valid, idx_valid = self._prepare_patches(img_loader, ind_valid)
+        idx_valid = self._prepare_patches(img_loader, ind_valid)
+        nb_valid = len(idx_valid)
         gen_valid = self._build_generator(
             img_loader,
             indices=idx_valid,
             shuffle=True
         )
-        #nb_valid = self._get_number_of_patches(ind_valid,
-        #                                       patch_shape=self.patch_shape,
-        #                                       skip_blank=True)
         n_valid_steps = self._get_nb_minibatches(
                 nb_valid, self.batch_size
                 )
+
         use_multiprocessing = False
         self.model.fit(
             gen_train,
