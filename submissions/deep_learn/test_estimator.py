@@ -60,7 +60,8 @@ def test_image_loader(data):
 
 
 @pytest.mark.parametrize("train", [True, False])
-def test_generator_correct_output(init_est, data, train):
+@pytest.mark.parametrize("shuffle", [True, False])
+def test_generator_correct_output(init_est, data, train, shuffle):
     """ it checks if generator lead to the correct output if shuffle is set to
     False and there are no patches (full images)"""
     X, y = data
@@ -75,14 +76,15 @@ def test_generator_correct_output(init_est, data, train):
     else:
         img_loader = estimator.ImageLoader(X)
 
-    generator = init_est._build_generator(img_loader, shuffle=False,
+    generator = init_est._build_generator(img_loader, shuffle=shuffle,
                                           train=train)
     if train:
         x1, y1 = next(generator)
         assert np.all(x1.shape == y1.shape)
         assert len(np.unique(y1)) in [1, 2]  # TODO: if training on the whole
         # image or with skip_blank set to true it should always be 2
-        assert np.all(y1[0, 0, ...] == y[0])
+        if not shuffle:
+            assert np.all(y1[0, 0, ...] == y[0])
         y1 = y1.copy()
     else:
         x1 = next(generator)

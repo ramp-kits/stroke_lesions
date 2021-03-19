@@ -199,7 +199,7 @@ class KerasSegmentationClassifier(BaseEstimator):
                           self.input_shape[2]))
 
         if indices is None:
-            indices = range(img_loader.n_paths)
+            indices = list(range(img_loader.n_paths))
         nb = len(indices)
         if shuffle:
             np.random.shuffle(indices)
