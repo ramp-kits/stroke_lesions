@@ -59,7 +59,8 @@ def test_image_loader(data):
     assert np.all(y[1, :] == y2)
 
 
-def test_generator_correct_output(init_est, data):
+@pytest.mark.parametrize("train", [True, False])
+def test_generator_correct_output(init_est, data, train):
     """ it checks if generator lead to the correct output if shuffle is set to
     False and there are no patches (full images)"""
     X, y = data
@@ -69,33 +70,56 @@ def test_generator_correct_output(init_est, data):
     init_est.input_shape = init_est.image_size
     init_est.skip_blank = False
 
-    img_loader = estimator.ImageLoader(X, y)
-    generator = init_est._build_generator(img_loader, shuffle=False)
-    x1, y1 = next(generator)
-    assert np.all(x1.shape == y1.shape)
+    if train:
+        img_loader = estimator.ImageLoader(X, y)
+    else:
+        img_loader = estimator.ImageLoader(X)
+
+    generator = init_est._build_generator(img_loader, shuffle=False,
+                                          train=train)
+    if train:
+        x1, y1 = next(generator)
+        assert np.all(x1.shape == y1.shape)
+        assert len(np.unique(y1)) in [1, 2]  # TODO: if training on the whole
+        # image or with skip_blank set to true it should always be 2
+        assert np.all(y1[0, 0, ...] == y[0])
+        y1 = y1.copy()
+    else:
+        x1 = next(generator)
+    x1 = x1.copy()
     assert len(np.unique(x1)) > 2
-    assert len(np.unique(y1)) in [1, 2]  # TODO: if training on the whole image
-    # or with skip_blank set to true it should always be 2
-    assert np.all(y1[0, 0, ...] == y[0])
-    print('second call')
+
     # copy is necessary, otherwise it will reference the same loc in the memory
     # for x1 and x2 etc
-    x1, y1 = x1.copy(), y1.copy()
-    x2, y2 = next(generator)
-    x2, y2 = x2.copy(), y2.copy()
+    if train:
+        x2, y2 = next(generator)
+        y2 = y2.copy()
+        assert not np.all(y1 == y2)
+        assert np.all(y2[0, 0, ...] == y[1])
+    else:
+        x2 = next(generator)
+    x2 = x2.copy()
     assert not np.all(x1 == x2)
-    assert not np.all(y1 == y2)
     assert len(np.unique(x2)) > 2
-    assert np.all(y2[0, 0, ...] == y[1])
 
-    x3, y3 = next(generator)
-    x3, y3 = x3.copy(), y3.copy()
-    assert np.all(x1 == x3)
-    assert np.all(y1 == y3)
+    if train:
+        x3, y3 = next(generator)
+        y3 = y3.copy()
+        assert np.all(y1 == y3)
+    else:
+        # the generator should pass only once through the data
+        with pytest.raises(StopIteration):
+            x3 = next(generator)
 
-    x4, y4 = next(generator)
-    assert np.all(x2 == x4)
-    assert np.all(y2 == y4)
+    if train:
+        assert np.all(x1 == x3)
+
+        if train:
+            x4, y4 = next(generator)
+            assert np.all(y2 == y4)
+        else:
+            x4 = next(generator)
+        assert np.all(x2 == x4)
 
 
 def test_n_steps_correct():
