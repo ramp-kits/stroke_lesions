@@ -157,10 +157,10 @@ def test_generator_with_batches():
     pass
 
 
-@pytest.mark.parametrize("model_type", ['simple', 'unet'])   # ['simple_deep']
+@pytest.mark.parametrize("model_type", ['simple_deep', 'simple', 'unet'])
 def test_model_runs(model_type):
     n_samples = 100
-    x_len, y_len, z_len = (192, 224, 176)  # those dimensions must be..
+    x_len, y_len, z_len = (96, 112, 24)  # those dimensions must be..
 
     # initiate the estimator:
     params = {

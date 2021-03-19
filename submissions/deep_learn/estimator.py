@@ -137,6 +137,9 @@ class KerasSegmentationClassifier(BaseEstimator):
             self.model = self.model_simple()
         else:
             raise NotImplementedError
+        self.model.compile(optimizer=Adam(lr=self.initial_learning_rate),
+                           loss=_dice_coefficient_loss)
+        print(self.model.summary())
 
     # this is for computing patches and their indices
     def _create_patch_index_list(self, index_list):
@@ -385,10 +388,6 @@ class KerasSegmentationClassifier(BaseEstimator):
                         padding='same')(up1conv1)
 
         model = Model(inputs=inputs, outputs=output)
-        model.compile(optimizer=Adam(lr=self.initial_learning_rate),
-                      loss=_dice_coefficient_loss)
-
-        print(model.summary())
         return model
 
     def model_simple(self):
@@ -400,9 +399,6 @@ class KerasSegmentationClassifier(BaseEstimator):
         output = Conv3D(1, (3, 3, 3), activation='sigmoid',
                         padding='same')(batch_norm)
         model = Model(inputs=inputs, outputs=output)
-        model.compile(optimizer=Adam(lr=self.initial_learning_rate),
-                      loss=_dice_coefficient_loss)
-        print(model.summary())
         return model
 
     def unet_model_3d(
@@ -480,9 +476,6 @@ class KerasSegmentationClassifier(BaseEstimator):
         act = Activation(activation_name)(final_convolution)
         model = Model(inputs=inputs, outputs=act)
 
-        model.compile(optimizer=Adam(lr=self.initial_learning_rate),
-                      loss=_dice_coefficient_loss)
-        print(model.summary())
         return model
 
     def _create_convolution_block(
