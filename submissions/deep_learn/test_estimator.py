@@ -61,12 +61,13 @@ def test_image_loader(data):
 
 @pytest.mark.parametrize("train", [True, False])
 @pytest.mark.parametrize("shuffle", [True, False])
-def test_generator_correct_output(init_est, data, train, shuffle):
+@pytest.mark.parametrize("indices", [None, [1, 0], [0, 1]])
+def test_generator_correct_output(init_est, data, train, shuffle, indices):
     """ it checks if generator lead to the correct output if shuffle is set to
     False and there are no patches (full images)"""
     X, y = data
     init_est.image_size = (197, 233, 189)  # use original image size
-    # imitate estimator with now patches
+    # imitate estimator with no patches
     init_est.patch_shape = None
     init_est.input_shape = init_est.image_size
     init_est.skip_blank = False
@@ -77,13 +78,13 @@ def test_generator_correct_output(init_est, data, train, shuffle):
         img_loader = estimator.ImageLoader(X)
 
     generator = init_est._build_generator(img_loader, shuffle=shuffle,
-                                          train=train)
+                                          train=train, indices=indices)
     if train:
         x1, y1 = next(generator)
         assert np.all(x1.shape == y1.shape)
         assert len(np.unique(y1)) in [1, 2]  # TODO: if training on the whole
         # image or with skip_blank set to true it should always be 2
-        if not shuffle:
+        if not shuffle and not indices:
             assert np.all(y1[0, 0, ...] == y[0])
         y1 = y1.copy()
     else:
@@ -97,7 +98,8 @@ def test_generator_correct_output(init_est, data, train, shuffle):
         x2, y2 = next(generator)
         y2 = y2.copy()
         assert not np.all(y1 == y2)
-        assert np.all(y2[0, 0, ...] == y[1])
+        if not shuffle and not indices:
+            assert np.all(y2[0, 0, ...] == y[1])
     else:
         x2 = next(generator)
     x2 = x2.copy()
@@ -123,6 +125,11 @@ def test_generator_correct_output(init_est, data, train, shuffle):
             x4 = next(generator)
         assert np.all(x2 == x4)
 
+def test_generator_with_patches():
+    pass
+
+def test_generator_with_batches():
+    pass
 
 def test_n_steps_correct():
     pass
