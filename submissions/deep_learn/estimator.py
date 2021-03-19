@@ -105,7 +105,7 @@ class KerasSegmentationClassifier(BaseEstimator):
         image_loader_factory: class, it will use class ImageLoader
             to load the images
         model_type: str,
-            might be 'unet', 'simple_deep', 'simple'
+            might be 'unet', 'simple_unet', 'simple'
         """
         self.image_loader = image_loader_factory
         self.batch_size = batch_size
@@ -130,8 +130,8 @@ class KerasSegmentationClassifier(BaseEstimator):
 
         if model_type == 'unet':
             self.model = self.unet_model_3d()
-        elif model_type == 'simple_deep':
-            self.model = self.simple_deep()
+        elif model_type == 'simple_unet':
+            self.model = self.simple_unet()
         elif model_type == 'simple':
             self.model = self.model_simple()
         else:
@@ -345,7 +345,6 @@ class KerasSegmentationClassifier(BaseEstimator):
                 nb_valid, self.batch_size
                 )
         use_multiprocessing = False
-
         self.model.fit(
             gen_train,
             steps_per_epoch=n_train_steps,
@@ -359,7 +358,7 @@ class KerasSegmentationClassifier(BaseEstimator):
             callbacks=self._get_callbacks()
         )
 
-    def simple_deep(self):
+    def simple_unet(self):
         # define a simple model
         inputs = Input((1,) + self.input_shape)
         x = BatchNormalization()(inputs)
@@ -369,9 +368,10 @@ class KerasSegmentationClassifier(BaseEstimator):
         down1conv1 = Conv3D(2, (3, 3, 3), activation='relu',
                             padding='same')(down1conv1)
         down1pool = MaxPooling3D((2, 2, 2))(down1conv1)
+        batch_norm = BatchNormalization()(down1pool)
         # middle
         mid_conv1 = Conv3D(2, (3, 3, 3), activation='relu',
-                           padding='same')(down1pool)
+                           padding='same')(batch_norm)
         mid_conv1 = Conv3D(2, (3, 3, 3), activation='relu',
                            padding='same')(mid_conv1)
 
@@ -404,7 +404,7 @@ class KerasSegmentationClassifier(BaseEstimator):
     def unet_model_3d(
             self, pool_size=(2, 2, 1), n_labels=1,
             deconvolution=False, n_base_filters=16,
-            batch_normalization=False, activation_name="sigmoid"):
+            batch_normalization=True, activation_name="sigmoid"):
         """
         Builds the 3D UNet Keras model.f
         :param metrics: List metrics to be calculated during model training
@@ -551,26 +551,21 @@ class KerasSegmentationClassifier(BaseEstimator):
 
 
 def get_estimator():
-    # image_size = (197, 233, 189)
-    image_size = (192, 224, 176)
-    patch_shape = (192, 224, 8)  # out of memory if running the whole img
-    epochs = 150
-    batch_size = 1
-    initial_learning_rate = 0.01
-    learning_rate_drop = 0.5
-    learning_rate_patience = 5
-    early_stopping_patience = 10
-    workers = 1  # -1 if you want to use all available CPUs
-    image_loader = ImageLoader
+    params = {
+        # original image size is 197, 233, 189
+        'image_size': (192, 224, 176),
+        # out of memory if running on the whole img full unet model
+        'patch_shape': (192, 224, 8),
+        'epochs': 150,
+        'batch_size': 6,
+        'initial_learning_rate': 0.01,
+        'learning_rate_drop': 0.5,
+        'learning_rate_patience': 5,
+        'early_stopping_patience': 10,
+        'model_type': 'simple_unet'  # 'simple' 'simple_unet' or 'unet'
+    }
 
     # initiate a deep learning algorithm
-    deep = KerasSegmentationClassifier(
-        image_size, epochs=epochs, batch_size=batch_size,
-        initial_learning_rate=initial_learning_rate,
-        learning_rate_drop=learning_rate_drop,
-        learning_rate_patience=learning_rate_patience,
-        early_stopping_patience=early_stopping_patience,
-        workers=workers, patch_shape=patch_shape, image_loader=image_loader
-        )
+    deep = KerasSegmentationClassifier(**params)
 
     return deep
