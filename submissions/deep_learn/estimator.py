@@ -85,9 +85,9 @@ class KerasSegmentationClassifier(BaseEstimator):
     def __init__(self, image_size=(192, 224, 176), epochs=100,
                  initial_learning_rate=0.01,
                  learning_rate_patience=10, early_stopping_patience=50,
-                 learning_rate_drop=0.5, batch_size=2, workers=10,
+                 learning_rate_drop=0.5, batch_size=2, workers=1,
                  patch_shape=None, image_loader=None, skip_blank=True,
-                 depth=4):
+                 depth=4, model_type='unet'):
         """
         image_size: tuple with three elements (x, y, z)
             which are the dimensions of the images
@@ -105,13 +105,14 @@ class KerasSegmentationClassifier(BaseEstimator):
         batch_size: int
             image_loader: class, if set to None it will use class ImageLoader
             to load the images
+        model_type: str,
+            might be 'unet', 'simple_deep', 'simple'
         """
         if not image_loader:
             self.image_loader = ImageLoader
         else:
             self.image_loader = image_loader
         self.batch_size = batch_size
-        # self.xdim, self.ydim, self.zdim = image_size
         self.image_size = image_size
         self.epochs = epochs
         self.initial_learning_rate = initial_learning_rate
@@ -130,7 +131,13 @@ class KerasSegmentationClassifier(BaseEstimator):
             self.workers = cpu_count()
         else:
             self.workers = workers
-        self.model = self.unet_model_3d()
+
+        if model_type == 'unet':
+            self.model = self.unet_model_3d()
+        elif model_type == 'simple_deep':
+            self.model = self.simple_deep()
+        elif model_type == 'simple':
+            self.model = self.model_simple()
 
     # this is for computing patches and their indices
     def _create_patch_index_list(self, index_list):
@@ -243,12 +250,13 @@ class KerasSegmentationClassifier(BaseEstimator):
                                  y_start:y_len,
                                  z_start:z_len
                                  ]
+                        if self.skip_blank:
+                            assert len(np.unique(Y[i])) == 2  # 0 and 1
                     else:
                         go_on = False
                         x = img_loader.load(idx)
 
-                    if self.skip_blank:
-                        assert len(np.unique(Y[i])) == 2  # 0 and 1
+                    
                     X[i] = x[np.newaxis,
                              x_start:x_len,
                              y_start:y_len,
@@ -350,9 +358,9 @@ class KerasSegmentationClassifier(BaseEstimator):
             callbacks=self._get_callbacks()
         )
 
-    def unet_simple(self):
+    def simple_deep(self):
         # define a simple model
-        inputs = Input((1,) + self.image_shape)
+        inputs = Input((1,) + self.input_shape)
         x = BatchNormalization()(inputs)
         # downsampling
         down1conv1 = Conv3D(2, (3, 3, 3), activation='relu',
@@ -385,7 +393,7 @@ class KerasSegmentationClassifier(BaseEstimator):
 
     def model_simple(self):
         # define a simple model
-        inputs = Input(self.image_size + (1,))
+        inputs = Input((1,) + self.input_shape)
         down1conv1 = Conv3D(32, (6, 6, 6), activation='relu',
                             padding='same')(inputs)
         batch_norm = BatchNormalization()(down1conv1)

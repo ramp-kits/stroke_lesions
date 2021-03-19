@@ -5,18 +5,17 @@ import numpy as np
 import estimator as estimator
 
 
-def init_est(model_type='unet', **params, ):
-    if model_type == 'unet':
-        est_params = {
-            'image_size': (192, 224, 8),
-            'epochs': 150,
-            'batch_size': 1,
-            'initial_learning_rate': 0.01,
-            'learning_rate_drop': 0.5,
-            'learning_rate_patience': 5,
-            'early_stopping_patience': 10,
-            'workers': 1
-        }
+def init_est(**params):
+    est_params = {
+        'image_size': (192, 224, 8),
+        'epochs': 150,
+        'batch_size': 1,
+        'initial_learning_rate': 0.01,
+        'learning_rate_drop': 0.5,
+        'learning_rate_patience': 5,
+        'early_stopping_patience': 10,
+        'workers': 1
+    }
     # overwrite with given values
     for key, value in params.items():
         est_params[key] = value
@@ -94,7 +93,7 @@ def test_generator_correct_output(data, train, shuffle, indices):
         'skip_blank': False,
         'depth': 1
     }
-    est = init_est(**params, model_type='unet')
+    est = init_est(**params)
 
     if train:
         img_loader = estimator.ImageLoader(X, y)
@@ -158,7 +157,8 @@ def test_generator_with_batches():
     pass
 
 
-def test_unet_model_runs():
+@pytest.mark.parametrize("model_type", ['simple', 'unet'])  # simple_unet
+def test_model_runs(model_type):
     n_samples = 100
     x_len, y_len, z_len = 32, 16, 8
 
@@ -167,10 +167,10 @@ def test_unet_model_runs():
         'image_loader': TestImageLoader,
         'image_size': (x_len, y_len, z_len),
         'patch_shape': None,
-        'epochs': 1
-
+        'epochs': 1,
+        'model_type': model_type
     }
-    est = init_est(**params, model_type='unet')
+    est = init_est(**params)
 
     y = np.random.choice([0, 1], size=n_samples * x_len * y_len * z_len)
     y = y.reshape(n_samples, x_len, y_len, z_len)
@@ -178,6 +178,10 @@ def test_unet_model_runs():
 
     est.fit(X, y)
     est.predict(X)
+
+
+def test_correct_n_steps():
+    pass
 
 
 def test_skip_blank():
