@@ -5,25 +5,23 @@ import numpy as np
 import estimator as estimator
 
 
-@pytest.fixture
-def init_est():
-    image_size = (192, 224, 176)
-    patch_shape = (192, 224, 8)
-    epochs = 150
-    batch_size = 1
-    initial_learning_rate = 0.01
-    learning_rate_drop = 0.5
-    learning_rate_patience = 5
-    early_stopping_patience = 10
-    workers = 1
-    est = estimator.KerasSegmentationClassifier(
-        image_size, epochs=epochs, batch_size=batch_size,
-        initial_learning_rate=initial_learning_rate,
-        learning_rate_drop=learning_rate_drop,
-        learning_rate_patience=learning_rate_patience,
-        early_stopping_patience=early_stopping_patience,
-        workers=workers, patch_shape=patch_shape
-        )
+def init_est(model_type='unet', **params, ):
+    if model_type == 'unet':
+        est_params = {
+            'image_size': (192, 224, 8),
+            'epochs': 150,
+            'batch_size': 1,
+            'initial_learning_rate': 0.01,
+            'learning_rate_drop': 0.5,
+            'learning_rate_patience': 5,
+            'early_stopping_patience': 10,
+            'workers': 1
+        }
+    # overwrite with given values
+    for key, value in params.items():
+        est_params[key] = value
+
+    est = estimator.KerasSegmentationClassifier(**est_params)
     return est
 
 
@@ -44,6 +42,30 @@ def data():
     return [X1_path, X2_path], y
 
 
+class TestImageLoader():
+
+    def __init__(self, X, y=None):
+        self.X = X
+        self.n_paths = len(X)
+        self.y = y
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return self.next()
+
+    def load(self, img_index):
+        if self.y is not None:
+            return self.X[img_index], self.y[img_index]
+        else:
+            return self.X[img_index]
+
+    def load_y(self, img_index):
+        assert self.y is not None
+        return self.y[img_index]
+
+
 def test_image_loader(data):
     """ check if the ImageLoader is returning expected data """
     X, y = data
@@ -62,23 +84,25 @@ def test_image_loader(data):
 @pytest.mark.parametrize("train", [True, False])
 @pytest.mark.parametrize("shuffle", [True, False])
 @pytest.mark.parametrize("indices", [None, [1, 0], [0, 1]])
-def test_generator_correct_output(init_est, data, train, shuffle, indices):
+def test_generator_correct_output(data, train, shuffle, indices):
     """ it checks if generator lead to the correct output if shuffle is set to
     False and there are no patches (full images)"""
     X, y = data
-    init_est.image_size = (197, 233, 189)  # use original image size
-    # imitate estimator with no patches
-    init_est.patch_shape = None
-    init_est.input_shape = init_est.image_size
-    init_est.skip_blank = False
+    params = {
+        'image_size': y.shape[1:],
+        'patch_shape': None,
+        'skip_blank': False,
+        'depth': 1
+    }
+    est = init_est(**params, model_type='unet')
 
     if train:
         img_loader = estimator.ImageLoader(X, y)
     else:
         img_loader = estimator.ImageLoader(X)
 
-    generator = init_est._build_generator(img_loader, shuffle=shuffle,
-                                          train=train, indices=indices)
+    generator = est._build_generator(img_loader, shuffle=shuffle,
+                                     train=train, indices=indices)
     if train:
         x1, y1 = next(generator)
         assert np.all(x1.shape == y1.shape)
@@ -125,14 +149,35 @@ def test_generator_correct_output(init_est, data, train, shuffle, indices):
             x4 = next(generator)
         assert np.all(x2 == x4)
 
+
 def test_generator_with_patches():
     pass
+
 
 def test_generator_with_batches():
     pass
 
-def test_n_steps_correct():
-    pass
+
+def test_unet_model_runs():
+    n_samples = 100
+    x_len, y_len, z_len = 32, 16, 8
+
+    # initiate the estimator:
+    params = {
+        'image_loader': TestImageLoader,
+        'image_size': (x_len, y_len, z_len),
+        'patch_shape': None,
+        'epochs': 1
+
+    }
+    est = init_est(**params, model_type='unet')
+
+    y = np.random.choice([0, 1], size=n_samples * x_len * y_len * z_len)
+    y = y.reshape(n_samples, x_len, y_len, z_len)
+    X = np.random.rand(n_samples, x_len, y_len, z_len)
+
+    est.fit(X, y)
+    est.predict(X)
 
 
 def test_skip_blank():

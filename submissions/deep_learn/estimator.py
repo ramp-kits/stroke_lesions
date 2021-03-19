@@ -82,10 +82,12 @@ class ImageLoader():
 
 
 class KerasSegmentationClassifier(BaseEstimator):
-    def __init__(self, image_size, epochs=100, initial_learning_rate=0.01,
+    def __init__(self, image_size=(192, 224, 176), epochs=100,
+                 initial_learning_rate=0.01,
                  learning_rate_patience=10, early_stopping_patience=50,
                  learning_rate_drop=0.5, batch_size=2, workers=10,
-                 patch_shape=None):
+                 patch_shape=None, image_loader=None, skip_blank=True,
+                 depth=4):
         """
         image_size: tuple with three elements (x, y, z)
             which are the dimensions of the images
@@ -101,7 +103,13 @@ class KerasSegmentationClassifier(BaseEstimator):
         learning_rate_drop: float,
             factor by which the learning rate will be reduced
         batch_size: int
+            image_loader: class, if set to None it will use class ImageLoader
+            to load the images
         """
+        if not image_loader:
+            self.image_loader = ImageLoader
+        else:
+            self.image_loader = image_loader
         self.batch_size = batch_size
         # self.xdim, self.ydim, self.zdim = image_size
         self.image_size = image_size
@@ -111,7 +119,8 @@ class KerasSegmentationClassifier(BaseEstimator):
         self.learning_rate_patience = learning_rate_patience
         self.early_stopping_patience = early_stopping_patience
         self.patch_shape = patch_shape
-        self.skip_blank = True
+        self.skip_blank = skip_blank
+        self.depth = depth
         if patch_shape:
             self.input_shape = patch_shape
         else:
@@ -288,7 +297,7 @@ class KerasSegmentationClassifier(BaseEstimator):
 
     def fit(self, X, y):
 
-        img_loader = ImageLoader(X, y)
+        img_loader = self.image_loader(X, y)
         np.random.seed(42)
         nb = len(X)
         nb_train = int(nb * 0.9)  # this will be updated for the patches
@@ -327,9 +336,7 @@ class KerasSegmentationClassifier(BaseEstimator):
         n_valid_steps = self._get_nb_minibatches(
                 nb_valid, self.batch_size
                 )
-
         use_multiprocessing = False
-        import pdb; pdb.set_trace()
         self.model.fit(
             gen_train,
             steps_per_epoch=n_train_steps,
@@ -392,8 +399,7 @@ class KerasSegmentationClassifier(BaseEstimator):
 
     def unet_model_3d(
             self, pool_size=(2, 2, 1), n_labels=1,
-            deconvolution=False,
-            depth=4, n_base_filters=16,
+            deconvolution=False, n_base_filters=16,
             batch_normalization=False, activation_name="sigmoid"):
         """
         Builds the 3D UNet Keras model.f
@@ -423,7 +429,7 @@ class KerasSegmentationClassifier(BaseEstimator):
         levels = list()
 
         # add levels with max pooling
-        for layer_depth in range(depth):
+        for layer_depth in range(self.depth):
             layer1 = self._create_convolution_block(
                 input_layer=current_layer,
                 n_filters=n_base_filters*(2**layer_depth),
@@ -434,14 +440,14 @@ class KerasSegmentationClassifier(BaseEstimator):
                 n_filters=n_base_filters*(2**layer_depth)*2,
                 batch_normalization=batch_normalization
                 )
-            if layer_depth < depth - 1:
+            if layer_depth < self.depth - 1:
                 current_layer = MaxPooling3D(pool_size=pool_size)(layer2)
                 levels.append([layer1, layer2, current_layer])
             else:
                 current_layer = layer2
                 levels.append([layer1, layer2])
         # add levels with up-convolution or up-sampling
-        for layer_depth in range(depth-2, -1, -1):
+        for layer_depth in range(self.depth-2, -1, -1):
             up_convolution = self._get_up_convolution(
                 pool_size=pool_size,
                 deconvolution=deconvolution,
@@ -530,7 +536,7 @@ class KerasSegmentationClassifier(BaseEstimator):
         return UpSampling3D(size=pool_size, data_format='channels_first')
 
     def predict(self, X):
-        img_loader = ImageLoader(X)
+        img_loader = self.image_loader(X)
         gen_test = self._build_generator(img_loader, train=False)
 
         y_pred = self.model.predict(
@@ -555,6 +561,7 @@ def get_estimator():
     learning_rate_patience = 5
     early_stopping_patience = 10
     workers = 1  # -1 if you want to use all available CPUs
+    image_loader = ImageLoader
 
     # initiate a deep learning algorithm
     deep = KerasSegmentationClassifier(
@@ -563,7 +570,7 @@ def get_estimator():
         learning_rate_drop=learning_rate_drop,
         learning_rate_patience=learning_rate_patience,
         early_stopping_patience=early_stopping_patience,
-        workers=workers, patch_shape=patch_shape
+        workers=workers, patch_shape=patch_shape, image_loader=image_loader
         )
 
     pipeline = Pipeline([
