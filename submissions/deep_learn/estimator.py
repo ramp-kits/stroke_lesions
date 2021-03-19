@@ -197,12 +197,10 @@ class KerasSegmentationClassifier(BaseEstimator):
                           self.input_shape[0],
                           self.input_shape[1],
                           self.input_shape[2]))
-         
+
         if indices is None:
-            nb = len(X)
             indices = range(img_loader.n_paths)
-        else:
-            nb = len(indices)
+        nb = len(indices)
         if shuffle:
             np.random.shuffle(indices)
         go_on = True
@@ -226,7 +224,6 @@ class KerasSegmentationClassifier(BaseEstimator):
                         x_start, y_start, z_start = 0, 0, 0
                         x_len, y_len, z_len = self.image_size
                         idx = img_index
-                    print('idx is ', idx)
                     x_len += x_start
                     y_len += y_start
                     z_len += z_start
@@ -239,7 +236,7 @@ class KerasSegmentationClassifier(BaseEstimator):
                                  ]
                     else:
                         go_on = False
-                        x = img_loader.load(img_index)
+                        x = img_loader.load(idx)
 
                     if self.skip_blank:
                         assert len(np.unique(Y[i])) == 2  # 0 and 1
@@ -250,6 +247,8 @@ class KerasSegmentationClassifier(BaseEstimator):
                              ]
                 if train:
                     # in case final batch is not full need to slice
+                    # note: it returns the slice meaning it will keep the same
+                    # reference in the memory for the next returns
                     yield X[:bs, :], Y[:bs, :]
                 else:
                     yield X[:bs, :]
