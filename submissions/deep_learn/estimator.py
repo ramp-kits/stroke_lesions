@@ -20,11 +20,10 @@ from multiprocessing import cpu_count
 from nilearn.image import load_img
 from joblib import Memory
 
+# we are not going to use up the whole memory if not necessary
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
-# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-# os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 K.set_image_data_format('channels_first')
 
 gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -365,26 +364,27 @@ class KerasSegmentationClassifier(BaseEstimator):
         inputs = Input((1,) + self.input_shape)
         x = BatchNormalization()(inputs)
         # downsampling
-        down1conv1 = Conv3D(2, (3, 3, 2), activation='relu',
+        down1conv1 = Conv3D(2, (3, 3, 3), activation='relu',
                             padding='same')(x)
-        down1conv1 = Conv3D(2, (3, 3, 2), activation='relu',
+        down1conv1 = Conv3D(2, (3, 3, 3), activation='relu',
                             padding='same')(down1conv1)
         down1pool = MaxPooling3D((2, 2, 2))(down1conv1)
         # middle
-        mid_conv1 = Conv3D(2, (3, 3, 2), activation='relu',
+        mid_conv1 = Conv3D(2, (3, 3, 3), activation='relu',
                            padding='same')(down1pool)
-        mid_conv1 = Conv3D(2, (3, 3, 2), activation='relu',
+        mid_conv1 = Conv3D(2, (3, 3, 3), activation='relu',
                            padding='same')(mid_conv1)
 
         # upsampling
-        up1deconv = Conv3DTranspose(2, (3, 3, 2), strides=(2, 2, 2),
+        # the kernel size should be the same as in MaxPooling3d
+        up1deconv = Conv3DTranspose(2, (2, 2, 2), strides=(2, 2, 2),
                                     activation='relu')(mid_conv1)
-        up1concat = Concatenate()([up1deconv, down1conv1])
-        up1conv1 = Conv3D(2, (3, 3, 2), activation='relu',
+        up1concat = Concatenate(axis=1)([up1deconv, down1conv1])
+        up1conv1 = Conv3D(2, (3, 3, 3), activation='relu',
                           padding='same')(up1concat)
-        up1conv1 = Conv3D(2, (3, 3, 2), activation='relu',
+        up1conv1 = Conv3D(2, (3, 3, 3), activation='relu',
                           padding='same')(up1conv1)
-        output = Conv3D(1, (3, 3, 2), activation='sigmoid',
+        output = Conv3D(1, (3, 3, 3), activation='sigmoid',
                         padding='same')(up1conv1)
 
         model = Model(inputs=inputs, outputs=output)
