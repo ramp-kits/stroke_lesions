@@ -157,14 +157,14 @@ def test_generator_with_batches():
     pass
 
 
-@pytest.mark.parametrize("model_type", ['simple', 'unet'])  # simple_unet
+@pytest.mark.parametrize("model_type", ['simple', 'unet'])   # ['simple_deep']
 def test_model_runs(model_type):
     n_samples = 100
-    x_len, y_len, z_len = 32, 16, 8
+    x_len, y_len, z_len = (192, 224, 176)  # those dimensions must be..
 
     # initiate the estimator:
     params = {
-        'image_loader': TestImageLoader,
+        'image_loader_factory': TestImageLoader,
         'image_size': (x_len, y_len, z_len),
         'patch_shape': None,
         'epochs': 1,
@@ -177,7 +177,9 @@ def test_model_runs(model_type):
     X = np.random.rand(n_samples, x_len, y_len, z_len)
 
     est.fit(X, y)
-    est.predict(X)
+    y_pred = est.predict(X)
+    assert y_pred.shape == X.shape
+    assert len(np.unique(y_pred)) in [1, 2]
 
 
 def test_correct_n_steps():

@@ -17,7 +17,6 @@ from keras.optimizers import Adam
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from multiprocessing import cpu_count
 
-from sklearn.pipeline import Pipeline
 from nilearn.image import load_img
 from joblib import Memory
 
@@ -86,7 +85,8 @@ class KerasSegmentationClassifier(BaseEstimator):
                  initial_learning_rate=0.01,
                  learning_rate_patience=10, early_stopping_patience=50,
                  learning_rate_drop=0.5, batch_size=2, workers=1,
-                 patch_shape=None, image_loader=None, skip_blank=True,
+                 patch_shape=None, image_loader_factory=ImageLoader,
+                 skip_blank=True,
                  depth=4, model_type='unet'):
         """
         image_size: tuple with three elements (x, y, z)
@@ -103,15 +103,12 @@ class KerasSegmentationClassifier(BaseEstimator):
         learning_rate_drop: float,
             factor by which the learning rate will be reduced
         batch_size: int
-            image_loader: class, if set to None it will use class ImageLoader
+        image_loader_factory: class, it will use class ImageLoader
             to load the images
         model_type: str,
             might be 'unet', 'simple_deep', 'simple'
         """
-        if not image_loader:
-            self.image_loader = ImageLoader
-        else:
-            self.image_loader = image_loader
+        self.image_loader = image_loader_factory
         self.batch_size = batch_size
         self.image_size = image_size
         self.epochs = epochs
@@ -138,6 +135,8 @@ class KerasSegmentationClassifier(BaseEstimator):
             self.model = self.simple_deep()
         elif model_type == 'simple':
             self.model = self.model_simple()
+        else:
+            raise NotImplementedError
 
     # this is for computing patches and their indices
     def _create_patch_index_list(self, index_list):
@@ -256,7 +255,6 @@ class KerasSegmentationClassifier(BaseEstimator):
                         go_on = False
                         x = img_loader.load(idx)
 
-                    
                     X[i] = x[np.newaxis,
                              x_start:x_len,
                              y_start:y_len,
@@ -345,6 +343,7 @@ class KerasSegmentationClassifier(BaseEstimator):
                 nb_valid, self.batch_size
                 )
         use_multiprocessing = False
+
         self.model.fit(
             gen_train,
             steps_per_epoch=n_train_steps,
@@ -353,7 +352,7 @@ class KerasSegmentationClassifier(BaseEstimator):
             use_multiprocessing=use_multiprocessing,
             validation_data=gen_valid,
             validation_steps=n_valid_steps,
-            verbose=2,
+            verbose=1,
             workers=self.workers,
             callbacks=self._get_callbacks()
         )
@@ -363,32 +362,33 @@ class KerasSegmentationClassifier(BaseEstimator):
         inputs = Input((1,) + self.input_shape)
         x = BatchNormalization()(inputs)
         # downsampling
-        down1conv1 = Conv3D(2, (3, 3, 3), activation='relu',
+        down1conv1 = Conv3D(2, (3, 3, 2), activation='relu',
                             padding='same')(x)
-        down1conv1 = Conv3D(2, (3, 3, 3), activation='relu',
+        down1conv1 = Conv3D(2, (3, 3, 2), activation='relu',
                             padding='same')(down1conv1)
         down1pool = MaxPooling3D((2, 2, 2))(down1conv1)
         # middle
-        mid_conv1 = Conv3D(2, (3, 3, 3), activation='relu',
+        mid_conv1 = Conv3D(2, (3, 3, 2), activation='relu',
                            padding='same')(down1pool)
-        mid_conv1 = Conv3D(2, (3, 3, 3), activation='relu',
+        mid_conv1 = Conv3D(2, (3, 3, 2), activation='relu',
                            padding='same')(mid_conv1)
 
         # upsampling
-        up1deconv = Conv3DTranspose(2, (3, 3, 3), strides=(2, 2, 2),
+        up1deconv = Conv3DTranspose(2, (3, 3, 2), strides=(2, 2, 2),
                                     activation='relu')(mid_conv1)
         up1concat = Concatenate()([up1deconv, down1conv1])
-        up1conv1 = Conv3D(2, (3, 3, 3), activation='relu',
+        up1conv1 = Conv3D(2, (3, 3, 2), activation='relu',
                           padding='same')(up1concat)
-        up1conv1 = Conv3D(2, (3, 3, 3), activation='relu',
+        up1conv1 = Conv3D(2, (3, 3, 2), activation='relu',
                           padding='same')(up1conv1)
-        output = Conv3D(1, (3, 3, 3), activation='softmax',
+        output = Conv3D(1, (3, 3, 2), activation='sigmoid',
                         padding='same')(up1conv1)
 
         model = Model(inputs=inputs, outputs=output)
         model.compile(optimizer=Adam(lr=self.initial_learning_rate),
                       loss=_dice_coefficient_loss)
 
+        print(model.summary())
         return model
 
     def model_simple(self):
@@ -553,9 +553,8 @@ class KerasSegmentationClassifier(BaseEstimator):
         )
         # threshold the data on 0.5; return only 1s and 0s in y_pred
         y_pred = (y_pred > 0.5) * 1
-        # remove the last dimension
-        # TODO: check if it is indeed the last dim that should be removed
-        return y_pred[..., 0]
+        # remove the channel dimension
+        return y_pred[:, 0, ...]
 
 
 def get_estimator():
@@ -581,8 +580,4 @@ def get_estimator():
         workers=workers, patch_shape=patch_shape, image_loader=image_loader
         )
 
-    pipeline = Pipeline([
-        ('classifier', deep)
-    ])
-
-    return pipeline
+    return deep
