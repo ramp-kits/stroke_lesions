@@ -300,8 +300,12 @@ class KerasSegmentationClassifier(BaseEstimator):
         ind_train = indices[0: nb_train]
         ind_valid = indices[nb_train:]
 
-        idx_train = self._prepare_patches(img_loader, ind_train)
+        if self.patch_shape:
+            idx_train = self._prepare_patches(img_loader, ind_train)
+        else:
+            idx_train = ind_train
         nb_train = len(idx_train)
+
         gen_train = self._build_generator(
             img_loader,
             indices=idx_train,
@@ -310,8 +314,10 @@ class KerasSegmentationClassifier(BaseEstimator):
         n_train_steps = self._get_nb_minibatches(
                 nb_train, self.batch_size
                 )
-
-        idx_valid = self._prepare_patches(img_loader, ind_valid)
+        if self.patch_shape:
+            idx_valid = self._prepare_patches(img_loader, ind_valid)
+        else:
+            idx_valid = ind_valid
         nb_valid = len(idx_valid)
         gen_valid = self._build_generator(
             img_loader,
@@ -323,6 +329,7 @@ class KerasSegmentationClassifier(BaseEstimator):
                 )
 
         use_multiprocessing = False
+        import pdb; pdb.set_trace()
         self.model.fit(
             gen_train,
             steps_per_epoch=n_train_steps,
@@ -338,7 +345,7 @@ class KerasSegmentationClassifier(BaseEstimator):
 
     def unet_simple(self):
         # define a simple model
-        inputs = Input(self.image_size + (1,))
+        inputs = Input((1,) + self.image_shape)
         x = BatchNormalization()(inputs)
         # downsampling
         down1conv1 = Conv3D(2, (3, 3, 3), activation='relu',
@@ -411,8 +418,7 @@ class KerasSegmentationClassifier(BaseEstimator):
             the amount memory required during training.
         :return: Untrained 3D UNet Model
         """
-        input_shape = (1,) + self.patch_shape
-        inputs = Input(input_shape)
+        inputs = Input((1,) + self.input_shape)
         current_layer = inputs
         levels = list()
 
@@ -541,7 +547,7 @@ class KerasSegmentationClassifier(BaseEstimator):
 def get_estimator():
     # image_size = (197, 233, 189)
     image_size = (192, 224, 176)
-    patch_shape = (192, 224, 8)
+    patch_shape = (192, 224, 8)  # out of memory if running the whole img
     epochs = 150
     batch_size = 1
     initial_learning_rate = 0.01
