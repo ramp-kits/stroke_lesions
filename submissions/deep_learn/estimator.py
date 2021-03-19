@@ -249,9 +249,9 @@ class KerasSegmentationClassifier(BaseEstimator):
                     # in case final batch is not full need to slice
                     # note: it returns the slice meaning it will keep the same
                     # reference in the memory for the next returns
-                    yield X[:bs, :], Y[:bs, :]
+                    yield X[:bs, :].copy(), Y[:bs, :].copy()
                 else:
-                    yield X[:bs, :]
+                    yield X[:bs, :].copy()
 
     def _get_nb_minibatches(self, nb_samples, batch_size):
         """Compute the number of minibatches for keras.
