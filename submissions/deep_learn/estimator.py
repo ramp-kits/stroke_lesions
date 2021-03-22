@@ -553,33 +553,30 @@ class KerasSegmentationClassifier(BaseEstimator):
 
         y_pred = self.model.predict(
             gen_test,
-            batch_size=1, 
-
+            batch_size=1,
         )
 
         y_pred_fin = np.zeros((len(X), ) + self.original_size)
-        _x_len, _y_len, _z_len = y_pred.shape[2:]
+        _x_len, _y_len, _z_len = self.input_shape
 
+        # threshold the data on 0.5; return only 1s and 0s in y_pred
+        y_pred = (y_pred > 0.5) * 1
         if self.patch_shape:
             # put back the patches into the images of the original size.
             # Note we are here working only with the patches which equally
             # divide the image (ie no overlapping) in one dimension
-            patches_in_img = int(self.image_size[2] / self.patch_shape[2])
             idx = 0
-            for img_idx in range(len(X)):
-                start_idx = 0
-                for patch_idx in range(patches_in_img):
-                    end_idx = (patch_idx + 1) * self.patch_shape[2]
-                    y_pred_fin[img_idx,
-                               :_x_len,
-                               :_y_len,
-                               start_idx: end_idx] = y_pred[idx , 0, ...]
-                    start_idx = end_idx 
+            for img_indices in idx_test:
+                img_idx = img_indices[0]
+                _x_start, _y_start, _z_start = img_indices[1]
+                _x_end, _y_end, _z_end = img_indices[1] + self.input_shape
+
+                y_pred_fin[img_idx,
+                           _x_start: _x_end,
+                           _y_start: _y_end,
+                           _z_start: _z_end] = y_pred[idx, 0, ...]
         else:
             y_pred_fin[:, :_x_len, :_y_len, :_z_len] = y_pred[:, 0, ...]
-
-        # threshold the data on 0.5; return only 1s and 0s in y_pred
-        y_pred_fin = (y_pred_fin > 0.5) * 1
         # remove the channel dimension
         return y_pred_fin
 
