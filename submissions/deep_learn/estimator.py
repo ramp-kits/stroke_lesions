@@ -80,8 +80,9 @@ class ImageLoader():
 
 
 class KerasSegmentationClassifier(BaseEstimator):
-    def __init__(self, image_size=(192, 224, 176), epochs=100,
-                 initial_learning_rate=0.01,
+    def __init__(self,
+                 image_size=(192, 224, 176), original_size=(197, 233, 189),
+                 epochs=100, initial_learning_rate=0.01,
                  learning_rate_patience=10, early_stopping_patience=50,
                  learning_rate_drop=0.5, batch_size=2, workers=1,
                  patch_shape=None, image_loader_factory=ImageLoader,
@@ -119,9 +120,13 @@ class KerasSegmentationClassifier(BaseEstimator):
         self.skip_blank = skip_blank
         self.depth = depth
         if patch_shape:
+            assert_msg = ('this estimator only works with patches of the last '
+                          'dimension which are divisible by the image size')
+            assert self.image_size[2] % self.patch_shape[2] == 0, assert_msg
             self.input_shape = patch_shape
         else:
             self.input_shape = image_size
+        self.original_size = original_size
 
         if workers == -1:
             self.workers = cpu_count()
@@ -171,7 +176,7 @@ class KerasSegmentationClassifier(BaseEstimator):
         )
     # ###
 
-    def _prepare_patches(self, img_loader, indices):
+    def _prepare_patches(self, img_loader, indices, train=True):
         if indices is not None:
             indices = indices.copy()
         else:
@@ -181,7 +186,7 @@ class KerasSegmentationClassifier(BaseEstimator):
             index_list = self._create_patch_index_list(indices)
         else:
             index_list = indices.copy()
-        if self.skip_blank:
+        if self.skip_blank and train:
             index_list_skip_blank = []
             # it will take much longer, each image will be loaded to memory
             # and each patch will be tested if it corresponds to the lesion
@@ -204,16 +209,15 @@ class KerasSegmentationClassifier(BaseEstimator):
         if patch_shape is not None the images will be split to patches of given
             size
         """
+        if not train:
+            _batch_size = 1
+        else:
+            _batch_size = self.batch_size
+        _x_len, _y_len, _z_len = self.input_shape
 
-        X = np.zeros((self.batch_size, 1,
-                      self.input_shape[0],
-                      self.input_shape[1],
-                      self.input_shape[2]))
+        X = np.zeros((_batch_size, 1) + self.input_shape)
         if train:
-            Y = np.zeros((self.batch_size, 1,
-                          self.input_shape[0],
-                          self.input_shape[1],
-                          self.input_shape[2]))
+            Y = np.zeros((_batch_size, 1) + self.input_shape)
 
         if indices is None:
             indices = list(range(img_loader.n_paths))
@@ -223,33 +227,32 @@ class KerasSegmentationClassifier(BaseEstimator):
         go_on = True
 
         while go_on:
-            for start in range(0, nb, self.batch_size):
-                stop = min(start + self.batch_size, nb)
+            for start in range(0, nb, _batch_size):
+                stop = min(start + _batch_size, nb)
                 # load the next minibatch in memory.
                 # The size of the minibatch is (stop - start),
                 # which is `batch_size` for the all except the last
                 # minibatch, which can either be `batch_size` if
                 # `nb` is a multiple of `batch_size`, or `nb % batch_size`.
                 bs = stop - start
-                assert bs <= self.batch_size
+                assert bs <= _batch_size
                 for i, img_index in enumerate(indices[start:stop]):
                     if self.patch_shape:
                         x_start, y_start, z_start = img_index[1]
-                        x_len, y_len, z_len = self.patch_shape
+                        # x_len, y_len, z_len = self.patch_shape
                         idx = img_index[0]
                     else:
                         x_start, y_start, z_start = 0, 0, 0
-                        x_len, y_len, z_len = self.image_size
                         idx = img_index
-                    x_len += x_start
-                    y_len += y_start
-                    z_len += z_start
+                    _x_end = _x_len + x_start
+                    _y_end = _y_len + y_start
+                    _z_end = _z_len + z_start
                     if train:
                         x, y = img_loader.load(idx)
                         Y[i] = y[np.newaxis,
-                                 x_start:x_len,
-                                 y_start:y_len,
-                                 z_start:z_len
+                                 x_start:_x_end,
+                                 y_start:_y_end,
+                                 z_start:_z_end
                                  ]
                         if self.skip_blank:
                             assert len(np.unique(Y[i])) == 2  # 0 and 1
@@ -258,9 +261,9 @@ class KerasSegmentationClassifier(BaseEstimator):
                         x = img_loader.load(idx)
 
                     X[i] = x[np.newaxis,
-                             x_start:x_len,
-                             y_start:y_len,
-                             z_start:z_len
+                             x_start:_x_end,
+                             y_start:_y_end,
+                             z_start:_z_end
                              ]
                 if train:
                     # in case final batch is not full need to slice
@@ -357,6 +360,7 @@ class KerasSegmentationClassifier(BaseEstimator):
             workers=self.workers,
             callbacks=self._get_callbacks()
         )
+        return self
 
     def simple_unet(self):
         # define a simple model
@@ -537,32 +541,64 @@ class KerasSegmentationClassifier(BaseEstimator):
         return UpSampling3D(size=pool_size, data_format='channels_first')
 
     def predict(self, X):
+        indices = np.arange(len(X))
         img_loader = self.image_loader(X)
-        gen_test = self._build_generator(img_loader, train=False)
+        if self.patch_shape:
+            idx_test = self._prepare_patches(img_loader, indices, train=False)
+        else:
+            idx_test = indices
+
+        gen_test = self._build_generator(img_loader, train=False,
+                                         indices=idx_test)
 
         y_pred = self.model.predict(
             gen_test,
-            batch_size=1
+            batch_size=1, 
+
         )
+
+        y_pred_fin = np.zeros((len(X), ) + self.original_size)
+        _x_len, _y_len, _z_len = y_pred.shape[2:]
+
+        if self.patch_shape:
+            # put back the patches into the images of the original size.
+            # Note we are here working only with the patches which equally
+            # divide the image (ie no overlapping) in one dimension
+            patches_in_img = int(self.image_size[2] / self.patch_shape[2])
+            idx = 0
+            for img_idx in range(len(X)):
+                start_idx = 0
+                for patch_idx in range(patches_in_img):
+                    end_idx = (patch_idx + 1) * self.patch_shape[2]
+                    y_pred_fin[img_idx,
+                               :_x_len,
+                               :_y_len,
+                               start_idx: end_idx] = y_pred[idx , 0, ...]
+                    start_idx = end_idx 
+        else:
+            y_pred_fin[:, :_x_len, :_y_len, :_z_len] = y_pred[:, 0, ...]
+
         # threshold the data on 0.5; return only 1s and 0s in y_pred
-        y_pred = (y_pred > 0.5) * 1
+        y_pred_fin = (y_pred_fin > 0.5) * 1
         # remove the channel dimension
-        return y_pred[:, 0, ...]
+        return y_pred_fin
 
 
 def get_estimator():
     params = {
-        # original image size is 197, 233, 189
+        # original image size is 197, 233, 189, if different is given the image
+        # will be cut into the new image_size
+        'original_size': (197, 233, 189),
         'image_size': (192, 224, 176),
         # out of memory if running on the whole img full unet model
-        'patch_shape': (192, 224, 8),
-        'epochs': 150,
-        'batch_size': 6,
+        'patch_shape': (192, 224, 44),  # (192, 224, 8),
+        'epochs': 1,
+        'batch_size': 3,
         'initial_learning_rate': 0.01,
         'learning_rate_drop': 0.5,
         'learning_rate_patience': 5,
         'early_stopping_patience': 10,
-        'model_type': 'simple_unet'  # 'simple' 'simple_unet' or 'unet'
+        'model_type': 'simple'  # 'simple' 'simple_unet' or 'unet'
     }
 
     # initiate a deep learning algorithm
