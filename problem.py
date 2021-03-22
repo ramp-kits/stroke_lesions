@@ -32,7 +32,7 @@ def load_img_data(fname):
 def check_mask(mask):
     ''' assert that the given mask consists only of 0s and 1s '''
     assert np.all(np.isin(mask, [0, 1])), ('Cannot compute the score.'
-                                           'Found values other than 0s and 1s')
+                                           'Found values other than 0 and 1')
 
 
 # define the scores
@@ -47,11 +47,30 @@ class DiceCoeff(BaseScoreType):
         self.name = name
         self.precision = precision
 
-    def __call__(self, y_true_mask, y_pred_mask):
-        check_mask(y_true_mask)
-        check_mask(y_pred_mask)
-        score = self._dice_coeff(y_true_mask, y_pred_mask)
-        return score
+    def score_function(self, ground_truths, predictions, valid_indexes=None):
+        # y_true are paths
+        return self.__call__(ground_truths.y_pred,
+                             predictions.y_pred,
+                             valid_indexes)
+
+    def __call__(self, y_true_mask, y_pred_mask, valid_indexes=None):
+        # calculate dice on each image separately to save on loading too much
+        # memory at once
+        score = np.empty(len(y_true_mask))
+
+        for idx in range(len(y_true_mask)):
+            if valid_indexes is None:
+                valid_idx = slice(None, None)
+            else:
+                valid_idx = valid_indexes[idx]
+            y_true = load_img_data(y_true_mask[idx])[valid_idx]
+            y_pred = y_pred_mask[idx][valid_idx] * 1
+
+            self.check_y_pred_dimensions(y_true, y_pred)
+            check_mask(y_true)
+            check_mask(y_pred)
+            score[idx] = self._dice_coeff(y_true, y_pred)
+        return score.mean()
 
     def _dice_coeff(self, y_true_mask, y_pred_mask):
         if (not np.any(y_pred_mask)) & (not np.any(y_true_mask)):
@@ -137,6 +156,7 @@ class AbsoluteVolumeDifference(BaseScoreType):
 
 class _MultiClass3d(BasePrediction):
     # y_pred should be 3 dimensional (x_len x y_len x z_len)
+    # y_true should be an array of paths
     def __init__(self, x_len, y_len, z_len, label_names,
                  y_pred=None, y_true=None, n_samples=None):
         # accepts only the predictions of classes 0 and 1
@@ -145,7 +165,6 @@ class _MultiClass3d(BasePrediction):
         self.z_len = z_len
         self.label_names = label_names
         self.n_samples = n_samples
-
         if y_pred is not None:
             self.y_pred = np.array(y_pred)
         elif y_true is not None:
@@ -162,13 +181,15 @@ class _MultiClass3d(BasePrediction):
         self.check_y_pred_dimensions()
 
     def check_y_pred_dimensions(self):
-        if len(self.y_pred.shape) != 4:
+        # it should be an array with paths or a boolean array
+        if len(self.y_pred.shape) not in [1, 4]:
             raise ValueError(
                 'Wrong y_pred dimensions: y_pred should be 4D, of size:'
                 f'({self.n_samples} x {self.x_len} x {self.y_len}'
                 f' x {self.z_len})'
                 f'instead its shape is {self.y_pred.shape}')
-        if self.y_pred.shape[1:] != (self.x_len, self.y_len, self.z_len):
+        if len(self.y_pred.shape) == 4 and\
+           self.y_pred.shape[1:] != (self.x_len, self.y_len, self.z_len):
             raise ValueError(
                 'Wrong y_pred dimensions: y_pred should be'
                 f' {self.x_len} x {self.y_len} x {self.z_len}'
@@ -176,6 +197,10 @@ class _MultiClass3d(BasePrediction):
 
     @classmethod
     def combine(cls, predictions_list, index_list=None):
+        """For the sake of memory we want to operate on boolean masks and
+        therefore estimators should already pass the boolean predictions.
+        If this is not the case the threshold will be applied and the mask will
+        be converted to bolean."""
         """Inherits from the base class where the scores are averaged.
         Here, averaged predictions < 0.5 will be set to 0.0 and averaged
         predictions >= 0.5 will be set to 1.0 so that `y_pred` will consist
@@ -190,10 +215,11 @@ class _MultiClass3d(BasePrediction):
                 )
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', category=RuntimeWarning)
-            combined_predictions.y_pred[
-                combined_predictions.y_pred < 0.5] = 0.0
-            combined_predictions.y_pred[
-                combined_predictions.y_pred >= 0.5] = 1.0
+            # import pdb; pdb.set_trace()
+            # combined_predictions.y_pred[
+            #    combined_predictions.y_pred < 0.5] = 0.0
+            # combined_predictions.y_pred[
+            #    combined_predictions.y_pred >= 0.5] = 1.0
 
         return combined_predictions
 
@@ -224,7 +250,7 @@ def make_3dmulticlass(x_len, y_len, z_len, label_names):
 
 
 problem_title = 'Stroke Lesion Segmentation'
-_prediction_label_names = [0, 1]
+_prediction_label_names = [True, False]
 _x_len, _y_len, _z_len = 197, 233, 189
 # A type (class) which will be used to create wrapper objects for y_pred
 Predictions = make_3dmulticlass(x_len=_x_len, y_len=_y_len, z_len=_z_len,
@@ -271,17 +297,13 @@ def _read_data(path):
     test = os.getenv('RAMP_TEST_MODE', 0)
     if test:
         # use only 5 subjects, otherwise take all
-        t1_names = t1_names[:100]
-    X = []
-    n_samples = len(t1_names)
-    y = np.empty((n_samples, _x_len, _y_len, _z_len))
+        t1_names = t1_names[:4]
+    X, y = [], []
     for idx, t1_next in enumerate(t1_names):
         X.append(t1_next)
         y_path = t1_next[:-(len(t1_name))] + lesion_name
-        y[idx, :] = load_img_data(y_path)
-    # make sure that all the elements of y are in _prediction_label_name
-    assert np.all(np.in1d(y, np.array(_prediction_label_names)))
-    return X, y
+        y.append(y_path)
+    return np.array(X), np.array(y)
 
 
 def get_train_data(path='.'):
