@@ -560,7 +560,7 @@ class KerasSegmentationClassifier(BaseEstimator):
         _x_len, _y_len, _z_len = self.input_shape
 
         # threshold the data on 0.5; return only 1s and 0s in y_pred
-        y_pred = (y_pred > 0.5) * 1
+        y_pred = (y_pred > 0.5)  # * 1
         if self.patch_shape:
             # put back the patches into the images of the original size.
             # Note we are here working only with the patches which equally
@@ -588,8 +588,8 @@ def get_estimator():
         'original_size': (197, 233, 189),
         'image_size': (192, 224, 176),
         # out of memory if running on the whole img full unet model
-        'patch_shape': (192, 224, 44),  # (192, 224, 8),
-        'epochs': 1,
+        'patch_shape': (192, 224, 8),
+        'epochs': 0,
         'batch_size': 3,
         'initial_learning_rate': 0.01,
         'learning_rate_drop': 0.5,
