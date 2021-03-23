@@ -200,3 +200,25 @@ def test_simple_deep():
 
 def test_unet():
     pass
+
+def test_ensure_dice_problem_same_dice_estimator(data):
+    import sys
+    import tensorflow.keras.backend as K
+    sys.path.append('.')
+    sys.path.append('data/train/')
+    x, y = data
+    
+    # dice for the problem.py
+    from problem import DiceCoeff
+    
+    y_true = load_img(y[0]).get_fdata().astype('int32')
+
+    y_true_tensor = K.constant(y_true)
+    score = estimator._dice_coefficient(y_true_tensor, y_true_tensor)
+    estimator_dice = float(score)
+    
+    diceclass = DiceCoeff()
+    zz = 'data/train/1_lesion.nii.gz'
+    problem_dice = diceclass.__call__([zz], [y_true])
+    assert problem_dice == estimator_dice
+    
