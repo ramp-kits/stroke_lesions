@@ -5,5 +5,4 @@ keras
 lightgbm
 xgboost
 catboost
-cudatoolkit
 tensorflow-gpu<2.4
