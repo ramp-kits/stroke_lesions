@@ -1,7 +1,7 @@
 name: ramp-stroke
 channels:
-  - conda-forge
   - defaults
+  - conda-forge
 dependencies:
   - numpy
   - scikit-learn>=0.22
@@ -11,7 +11,7 @@ dependencies:
   - matplotlib
 
   # Extra requirements
-  - tensorflow-gpu
+  - tensorflow-gpu<2.4
   - pytorch
   - keras
   - lightgbm
@@ -20,14 +20,13 @@ dependencies:
 
   - pip
   - pip:
+    # - cudatoolkit
     - osfclient
     - ramp-workflow
     - ramp-utils
     - imbalanced-learn
+    - git+https://www.github.com/keras-team/keras-contrib.git
 
     # Extra requirements pip
-    - gudhi
     - xgboost
     - catboost
-    - scikit-multilearn
-    - python-louvain

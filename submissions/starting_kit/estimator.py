@@ -71,12 +71,16 @@ class PointEstimator(BaseEstimator):
     def fit(self, X, y):
         _nonzero_indices = X[-1] != 0
 
+        y_loaded = np.empty([1, X.shape[1]])
+        for i in range(len(y)):
+            y_temp = load_img(y[i]).get_fdata()
+            self.img_shape = y_temp.shape
+            y_temp = y_temp.reshape((1, -1))
+            y_loaded[:, i*y_temp.shape[1]:(i+1)*y_temp.shape[1]] = y_temp
+
         # remove the last, average feature
         _X_no_zeros = X[:-1, _nonzero_indices]
-
-        self.img_shape = y.shape[1:]
-        y = y.reshape((1, -1))
-        _y_no_zeros = y[:, _nonzero_indices]
+        _y_no_zeros = y_loaded[:, _nonzero_indices]
         self.clf = LogisticRegression(class_weight="balanced")
         self.clf.fit(_X_no_zeros.T, _y_no_zeros.ravel())
         return self

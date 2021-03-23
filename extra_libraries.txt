@@ -1,11 +1,10 @@
 imbalanced-learn
 scipy
-tensorflow-gpu
 torch  # pytorch
 keras
 lightgbm
-gudhi
 xgboost
 catboost
-scikit-multilearn
-python-louvain
+tensorflow-gpu<2.4
+# cudatoolkit
+git+https://www.github.com/keras-team/keras-contrib.git
