@@ -146,24 +146,7 @@ def test_generator_correct_output(data, train, shuffle, indices):
 
 
 def test_generator_with_patches(data):
-    X, y = data
-    image_size = (197, 233, 189)
-    params = {
-        'image_size': image_size,
-        'patch_shape': None,
-        'skip_blank': False,
-        'depth': 1
-    }
-    est = init_est(**params)
-    # TODO:
-    if train:
-        img_loader = estimator.ImageLoader(X, y)
-    else:
-        img_loader = estimator.ImageLoader(X)
-
-    generator = est._build_generator(img_loader, shuffle=shuffle,
-                                     train=train, indices=indices)
-    # TODO: continue
+    pass
 
 
 @pytest.mark.parametrize("model_type", ['simple_unet', 'simple', 'unet'])
