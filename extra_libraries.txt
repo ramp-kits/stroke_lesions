@@ -7,3 +7,4 @@ xgboost
 catboost
 tensorflow-gpu<2.4
 # cudatoolkit
+git+https://www.github.com/keras-team/keras-contrib.git
