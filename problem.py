@@ -104,14 +104,22 @@ class Precision(BaseScoreType):
         self.name = name
         self.precision = precision
 
-    def __call__(self, y_true_mask, y_pred_mask):
-        y_true_mask = load_img_data(
-            y_true_mask[idx])[valid_idx].astype('int32')
-        check_mask(y_true_mask)
-        check_mask(y_pred_mask)
-        if np.sum(y_pred_mask) == 0 and not np.sum(y_true_mask) == 0:
+    def score_function(self, ground_truths, predictions, valid_indices=None):
+        # y_true are paths
+        return self.__call__(ground_truths.y_pred,
+                             predictions.y_pred,
+                             valid_indices=valid_indices)
+
+    def __call__(self, y_true_mask, y_pred_mask, valid_indices):
+        score = _calculate_score(y_true_mask, y_pred_mask,
+                                 valid_indexes=valid_indices,
+                                 func=self._calc_precision)
+        return np.nanmean(score)
+
+    def _calc_precision(self, y_true, y_pred):
+        if np.sum(y_pred) == 0 and not np.sum(y_true) == 0:
             return 0.0
-        score = precision_score(y_true_mask.ravel(), y_pred_mask.ravel())
+        score = precision_score(y_true.ravel(), y_pred.ravel())
         return score
 
 
@@ -124,12 +132,20 @@ class Recall(BaseScoreType):
         self.name = name
         self.precision = precision
 
-    def __call__(self, y_true_mask, y_pred_mask):
-        y_true_mask = load_img_data(
-            y_true_mask[idx])[valid_idx].astype('int32')
-        check_mask(y_true_mask)
-        check_mask(y_pred_mask)
-        score = recall_score(y_true_mask.ravel(), y_pred_mask.ravel())
+    def score_function(self, ground_truths, predictions, valid_indexes=None):
+        # y_true are paths
+        return self.__call__(ground_truths.y_pred,
+                             predictions.y_pred,
+                             valid_indexes)
+
+    def __call__(self, y_true_mask, y_pred_mask, valid_indices):
+        score = _calculate_score(y_true_mask, y_pred_mask,
+                                 valid_indexes=valid_indices,
+                                 func=self._calc_recall)
+        return np.nanmean(score)
+
+    def _calc_recall(self, y_true, y_pred):
+        score = recall_score(y_true.ravel(), y_pred.ravel())
         return score
 
 
@@ -144,13 +160,40 @@ class HausdorffDistance(BaseScoreType):
         self.name = name
         self.precision = precision
 
-    def __call__(self, y_true_mask, y_pred_mask):
-        y_true_mask = load_img_data(
-            y_true_mask[idx])[valid_idx].astype('int32')
-        check_mask(y_true_mask)
-        check_mask(y_pred_mask)
-        score = metrics.hausdorff_distance(y_true_mask, y_pred_mask)
+    def score_function(self, ground_truths, predictions, valid_indexes=None):
+        # y_true are paths
+        return self.__call__(ground_truths.y_pred,
+                             predictions.y_pred,
+                             valid_indexes)
+
+    def __call__(self, y_true_mask, y_pred_mask, valid_indices):
+        score = _calculate_score(y_true_mask, y_pred_mask,
+                                 valid_indexes=valid_indices,
+                                 func=self._calc_hausdorff)
+        return np.nanmean(score)
+
+    def _calc_hausdorff(self, y_true, y_pred):
+        score = metrics.hausdorff_distance(y_true, y_pred)
         return score
+
+
+def _calculate_score(y_true_mask, y_pred_mask, func, valid_indexes=None):
+    score = np.empty(len(y_true_mask))
+
+    for idx in range(len(y_true_mask)):
+        if valid_indexes is None:
+            valid_idx = slice(None, None)
+        else:
+            valid_idx = valid_indexes[idx]
+        y_true = load_img_data(y_true_mask[idx])[valid_idx].astype('int32')
+        y_pred = y_pred_mask[idx][valid_idx] * 1
+
+        # self.check_y_pred_dimensions(y_true, y_pred)
+        check_mask(y_true)
+        check_mask(y_pred)
+        score[idx] = func(y_true, y_pred)
+
+    return score
 
 
 class AbsoluteVolumeDifference(BaseScoreType):
@@ -162,14 +205,20 @@ class AbsoluteVolumeDifference(BaseScoreType):
         self.name = name
         self.precision = precision
 
-    def __call__(self, y_true_mask, y_pred_mask):
-        y_true_mask = load_img_data(
-            y_true_mask[idx])[valid_idx].astype('int32')
-        check_mask(y_true_mask)
-        check_mask(y_pred_mask)
-        score = np.abs(np.mean(y_true_mask) - np.mean(y_pred_mask))
+    def score_function(self, ground_truths, predictions, valid_indexes=None):
+        # y_true are paths
+        return self.__call__(ground_truths.y_pred,
+                             predictions.y_pred,
+                             valid_indexes)
 
-        return score
+    def __call__(self, y_true_mask, y_pred_mask, valid_indices):
+        score = _calculate_score(y_true_mask, y_pred_mask,
+                                 valid_indexes=valid_indices,
+                                 func=self._calc_AVD)
+        return np.nanmean(score)
+
+    def _calc_AVD(self, y_true, y_pred):
+        return np.abs(np.mean(y_true) - np.mean(y_pred))
 # -------- end of define the scores --------
 
 
@@ -234,11 +283,6 @@ class _MultiClass3d(BasePrediction):
                 )
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', category=RuntimeWarning)
-            # import pdb; pdb.set_trace()
-            # combined_predictions.y_pred[
-            #    combined_predictions.y_pred < 0.5] = 0.0
-            # combined_predictions.y_pred[
-            #    combined_predictions.y_pred >= 0.5] = 1.0
 
         return combined_predictions
 
@@ -279,10 +323,10 @@ workflow = rw.workflows.Estimator()
 
 score_types = [
     DiceCoeff(),
-    # AbsoluteVolumeDifference(),
-    # HausdorffDistance(),
-    # Recall(),
-    # Precision()
+    AbsoluteVolumeDifference(),
+    HausdorffDistance(),
+    Recall(),
+    Precision()
 ]
 
 
