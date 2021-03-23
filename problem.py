@@ -70,17 +70,19 @@ class DiceCoeff(BaseScoreType):
             check_mask(y_true)
             check_mask(y_pred)
             score[idx] = self._dice_coeff(y_true, y_pred)
-        return score.mean()
+        return np.nanmean(score)
 
     def _dice_coeff(self, y_true_mask, y_pred_mask):
+        if len(y_true_mask) == 0 and len(y_pred_mask) == 0:
+            return None
         if (not np.any(y_pred_mask)) & (not np.any(y_true_mask)):
             # if there is no true mask in the truth and prediction
             return 1
-        else:
-            dice = (
-                np.sum(np.logical_and(y_pred_mask, y_true_mask) * 2.0) /
-                (np.sum(y_pred_mask) + np.sum(y_true_mask))
-                )
+
+        dice = (
+            np.sum(np.logical_and(y_pred_mask, y_true_mask) * 2.0) /
+            (np.sum(y_pred_mask) + np.sum(y_true_mask))
+            )
         return dice
 
 
