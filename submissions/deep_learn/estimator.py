@@ -34,8 +34,12 @@ for gpu in gpus:
 mem = Memory('.')
 
 
-@mem.cache
+# @mem.cache
 def load_img_data(fname):
+    try:
+        load_img(fname).get_fdata()
+    except:
+        import pdb; pdb.set_trace()
     return load_img(fname).get_fdata()
 
 
@@ -59,7 +63,7 @@ class ImageLoader():
     def __init__(self, X_paths, y=None):
         self.X_paths = X_paths
         self.n_paths = len(X_paths)
-        self.y = y
+        self.y_paths = y
 
     def __iter__(self):
         return self
@@ -69,19 +73,19 @@ class ImageLoader():
 
     def load(self, img_index):
         img = load_img_data(self.X_paths[img_index])
-        if self.y is not None:
-            return img, self.y[img_index]
+        if self.y_paths is not None:
+            return img, load_img_data(self.y_paths[img_index])
         else:
             return img
 
     def load_y(self, img_index):
-        assert self.y is not None
-        return self.y[img_index]
+        assert self.y_paths is not None
+        return load_img_data(self.y_paths[img_index])
 
 
 class KerasSegmentationClassifier(BaseEstimator):
     def __init__(self,
-                 image_size=(192, 224, 176), original_size=(197, 233, 189),
+                 image_size=(192, 224, 176), original_size=None,
                  epochs=100, initial_learning_rate=0.01,
                  learning_rate_patience=10, early_stopping_patience=50,
                  learning_rate_drop=0.5, batch_size=2, workers=1,
@@ -126,7 +130,10 @@ class KerasSegmentationClassifier(BaseEstimator):
             self.input_shape = patch_shape
         else:
             self.input_shape = image_size
-        self.original_size = original_size
+        if original_size:
+            self.original_size = original_size
+        else:
+            self.original_size = image_size
 
         if workers == -1:
             self.workers = cpu_count()
@@ -553,10 +560,14 @@ class KerasSegmentationClassifier(BaseEstimator):
 
         y_pred = self.model.predict(
             gen_test,
-            batch_size=1,
+            batch_size=1
         )
 
-        y_pred_fin = np.zeros((len(X), ) + self.original_size)
+        # for sake of memory we will want to keep bolean mask. True for lesion,
+        # False for no lesion
+        # y_pred_fin = np.zeros((len(X), ) + self.original_size)
+        y_pred_fin = np.full(((len(X), ) + self.original_size),
+                             False, dtype=bool)
         _x_len, _y_len, _z_len = self.input_shape
 
         # threshold the data on 0.5; return only 1s and 0s in y_pred
@@ -589,7 +600,7 @@ def get_estimator():
         'image_size': (192, 224, 176),
         # out of memory if running on the whole img full unet model
         'patch_shape': (192, 224, 8),
-        'epochs': 0,
+        'epochs': 3,
         'batch_size': 3,
         'initial_learning_rate': 0.01,
         'learning_rate_drop': 0.5,

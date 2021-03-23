@@ -33,12 +33,7 @@ def data():
     y_path1 = '././data/train/1_lesion.nii.gz'
     y_path2 = '././data/train/2_lesion.nii.gz'
 
-    y1 = load_img(y_path1).get_fdata()
-    y = np.empty([2, y1.shape[0], y1.shape[1], y1.shape[2]])
-    y[0, :] = y1
-    y[1, :] = load_img(y_path2).get_fdata()
-
-    return [X1_path, X2_path], y
+    return [X1_path, X2_path], [y_path1, y_path2]
 
 
 class TestImageLoader():
@@ -76,8 +71,8 @@ def test_image_loader(data):
     assert not np.all(y1 == y2)
     assert np.all(load_img(X[0]).get_fdata() == X1)
     assert np.all(load_img(X[1]).get_fdata() == X2)
-    assert np.all(y[0, :] == y1)
-    assert np.all(y[1, :] == y2)
+    assert np.all(load_img(y[0]).get_fdata() == y1)
+    assert np.all(load_img(y[1]).get_fdata() == y2)
 
 
 @pytest.mark.parametrize("train", [True, False])
@@ -87,8 +82,9 @@ def test_generator_correct_output(data, train, shuffle, indices):
     """ it checks if generator lead to the correct output if shuffle is set to
     False and there are no patches (full images)"""
     X, y = data
+    image_size = (197, 233, 189)
     params = {
-        'image_size': y.shape[1:],
+        'image_size': image_size,
         'patch_shape': None,
         'skip_blank': False,
         'depth': 1
@@ -108,7 +104,7 @@ def test_generator_correct_output(data, train, shuffle, indices):
         assert len(np.unique(y1)) in [1, 2]  # TODO: if training on the whole
         # image or with skip_blank set to true it should always be 2
         if not shuffle and not indices:
-            assert np.all(y1[0, 0, ...] == y[0])
+            assert np.all(y1[0, 0, ...] == load_img(y[0]).get_fdata())
         y1 = y1.copy()
     else:
         x1 = next(generator)
@@ -122,7 +118,7 @@ def test_generator_correct_output(data, train, shuffle, indices):
         y2 = y2.copy()
         assert not np.all(y1 == y2)
         if not shuffle and not indices:
-            assert np.all(y2[0, 0, ...] == y[1])
+            assert np.all(y2[0, 0, ...] == load_img(y[1]).get_fdata())
     else:
         x2 = next(generator)
     x2 = x2.copy()
@@ -149,15 +145,28 @@ def test_generator_correct_output(data, train, shuffle, indices):
         assert np.all(x2 == x4)
 
 
-def test_generator_with_patches():
-    pass
+def test_generator_with_patches(data):
+    X, y = data
+    image_size = (197, 233, 189)
+    params = {
+        'image_size': image_size,
+        'patch_shape': None,
+        'skip_blank': False,
+        'depth': 1
+    }
+    est = init_est(**params)
+    # TODO:
+    if train:
+        img_loader = estimator.ImageLoader(X, y)
+    else:
+        img_loader = estimator.ImageLoader(X)
+
+    generator = est._build_generator(img_loader, shuffle=shuffle,
+                                     train=train, indices=indices)
+    # TODO: continue
 
 
-def test_generator_with_batches():
-    pass
-
-
-@pytest.mark.parametrize("model_type", ['simple_deep', 'simple', 'unet'])
+@pytest.mark.parametrize("model_type", ['simple_unet', 'simple', 'unet'])
 def test_model_runs(model_type):
     n_samples = 50
     x_len, y_len, z_len = (8, 8, 8)
@@ -180,6 +189,10 @@ def test_model_runs(model_type):
     y_pred = est.predict(X)
     assert y_pred.shape == X.shape
     assert len(np.unique(y_pred)) in [1, 2]
+
+
+def test_generator_with_batches():
+    pass
 
 
 def test_correct_n_steps():
