@@ -84,14 +84,14 @@ class DiceCoeff(BaseScoreType):
             (np.sum(y_pred_mask) + np.sum(y_true_mask))
             )
         '''
-        smooth=1.
+        smooth = 1.
         y_true_f = y_true_mask.flatten()
         y_pred_f = y_pred_mask.flatten()
 
-        intersection = np.sum(y_true_f * y_pred_f) # K.sum(y_true_f * y_pred_f)
+        intersection = np.sum(y_true_f * y_pred_f)
 
-        dice =  ((2. * intersection + smooth) / (np.sum(y_true_f) +
-                 np.sum(y_pred_f) + smooth))
+        dice = ((2. * intersection + smooth) / (np.sum(y_true_f) +
+                np.sum(y_pred_f) + smooth))
         return dice
 
 
@@ -323,10 +323,10 @@ workflow = rw.workflows.Estimator()
 
 score_types = [
     DiceCoeff(),
-    AbsoluteVolumeDifference(),
-    HausdorffDistance(),
-    Recall(),
-    Precision()
+    # AbsoluteVolumeDifference(),
+    # HausdorffDistance(),
+    # Recall(),
+    # Precision()
 ]
 
 
