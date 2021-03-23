@@ -1,8 +1,12 @@
+import sys
+import tensorflow.keras.backend as K
 import pytest
 from nilearn.image import load_img
 import numpy as np
 
 import estimator as estimator
+sys.path.append('.')
+from problem import DiceCoeff  # noqa: E402
 
 
 def init_est(**params):
@@ -201,24 +205,28 @@ def test_simple_deep():
 def test_unet():
     pass
 
-def test_ensure_dice_problem_same_dice_estimator(data):
-    import sys
-    import tensorflow.keras.backend as K
-    sys.path.append('.')
-    sys.path.append('data/train/')
-    x, y = data
-    
-    # dice for the problem.py
-    from problem import DiceCoeff
-    
-    y_true = load_img(y[0]).get_fdata().astype('int32')
 
-    y_true_tensor = K.constant(y_true)
-    score = estimator._dice_coefficient(y_true_tensor, y_true_tensor)
+@pytest.mark.parametrize("y_pred", ['same', 'random', 'zeros', 'ones'])
+def test_ensure_dice_problem_same_dice_estimator(y_pred):
+    y_true = 'data/train/1_lesion.nii.gz'
+    y_true_arr = load_img(y_true).get_fdata().astype('int32')
+    if y_pred == 'same':
+        y_pred_arr = y_true_arr
+    elif y_pred == 'random':
+        y_pred_arr = np.random.choice([0, 1], y_true_arr.shape)
+    elif y_pred == 'zeros':
+        y_pred_arr = np.zeros(y_true_arr.shape)
+    elif y_pred == 'ones':
+        y_pred_arr = np.ones(y_true_arr.shape)
+
+    # dice for the problem.py
+    y_true_tensor = K.constant(y_true_arr)
+    y_pred_tensor = K.constant(y_pred_arr)
+    score = estimator._dice_coefficient(y_true_tensor, y_pred_tensor)
     estimator_dice = float(score)
-    
+
+    # dice for the estimator.py
     diceclass = DiceCoeff()
-    zz = 'data/train/1_lesion.nii.gz'
-    problem_dice = diceclass.__call__([zz], [y_true])
-    assert problem_dice == estimator_dice
-    
+
+    problem_dice = diceclass.__call__([y_true], [y_pred_arr])
+    assert round(problem_dice, 6) == round(estimator_dice, 6)

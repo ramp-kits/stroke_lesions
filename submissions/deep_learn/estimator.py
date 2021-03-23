@@ -221,7 +221,7 @@ class KerasSegmentationClassifier(BaseEstimator):
 
         X = np.zeros((_batch_size, 1) + self.input_shape)
         if train:
-            Y = np.zeros((_batch_size, 1) + self.input_shape)
+            Y = np.zeros((_batch_size, 1) + self.input_shape, dtype='float32')
 
         if indices is None:
             indices = list(range(img_loader.n_paths))
@@ -597,13 +597,13 @@ def get_estimator():
         'image_size': (192, 224, 176),
         # out of memory if running on the whole img full unet model
         'patch_shape': (192, 224, 8),
-        'epochs': 150,
+        'epochs': 1,
         'batch_size': 6,
         'initial_learning_rate': 0.01,
         'learning_rate_drop': 0.5,
         'learning_rate_patience': 5,
         'early_stopping_patience': 10,
-        'model_type': 'simple_unet'  # 'simple' 'simple_unet' or 'unet'
+        'model_type': 'simple'  # 'simple' 'simple_unet' or 'unet'
     }
 
     # initiate a deep learning algorithm
