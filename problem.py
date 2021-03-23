@@ -20,7 +20,7 @@ RANDOM_STATE = 42
 mem = Memory('.')
 
 
-@mem.cache
+# @mem.cache
 def load_img_data(fname):
     return load_img(fname).get_fdata()
 
@@ -63,7 +63,7 @@ class DiceCoeff(BaseScoreType):
                 valid_idx = slice(None, None)
             else:
                 valid_idx = valid_indexes[idx]
-            y_true = load_img_data(y_true_mask[idx])[valid_idx]
+            y_true = load_img_data(y_true_mask[idx])[valid_idx].astype('int32')
             y_pred = y_pred_mask[idx][valid_idx] * 1
 
             self.check_y_pred_dimensions(y_true, y_pred)
@@ -78,11 +78,20 @@ class DiceCoeff(BaseScoreType):
         if (not np.any(y_pred_mask)) & (not np.any(y_true_mask)):
             # if there is no true mask in the truth and prediction
             return 1
-
+        '''
         dice = (
             np.sum(np.logical_and(y_pred_mask, y_true_mask) * 2.0) /
             (np.sum(y_pred_mask) + np.sum(y_true_mask))
             )
+        '''
+        smooth=1.
+        y_true_f = y_true_mask.flatten()
+        y_pred_f = y_pred_mask.flatten()
+
+        intersection = np.sum(y_true_f * y_pred_f) # K.sum(y_true_f * y_pred_f)
+
+        dice =  ((2. * intersection + smooth) / (np.sum(y_true_f) +
+                 np.sum(y_pred_f) + smooth))
         return dice
 
 
@@ -96,6 +105,8 @@ class Precision(BaseScoreType):
         self.precision = precision
 
     def __call__(self, y_true_mask, y_pred_mask):
+        y_true_mask = load_img_data(
+            y_true_mask[idx])[valid_idx].astype('int32')
         check_mask(y_true_mask)
         check_mask(y_pred_mask)
         if np.sum(y_pred_mask) == 0 and not np.sum(y_true_mask) == 0:
@@ -114,6 +125,8 @@ class Recall(BaseScoreType):
         self.precision = precision
 
     def __call__(self, y_true_mask, y_pred_mask):
+        y_true_mask = load_img_data(
+            y_true_mask[idx])[valid_idx].astype('int32')
         check_mask(y_true_mask)
         check_mask(y_pred_mask)
         score = recall_score(y_true_mask.ravel(), y_pred_mask.ravel())
@@ -132,6 +145,8 @@ class HausdorffDistance(BaseScoreType):
         self.precision = precision
 
     def __call__(self, y_true_mask, y_pred_mask):
+        y_true_mask = load_img_data(
+            y_true_mask[idx])[valid_idx].astype('int32')
         check_mask(y_true_mask)
         check_mask(y_pred_mask)
         score = metrics.hausdorff_distance(y_true_mask, y_pred_mask)
@@ -148,6 +163,8 @@ class AbsoluteVolumeDifference(BaseScoreType):
         self.precision = precision
 
     def __call__(self, y_true_mask, y_pred_mask):
+        y_true_mask = load_img_data(
+            y_true_mask[idx])[valid_idx].astype('int32')
         check_mask(y_true_mask)
         check_mask(y_pred_mask)
         score = np.abs(np.mean(y_true_mask) - np.mean(y_pred_mask))
@@ -299,7 +316,7 @@ def _read_data(path):
     test = os.getenv('RAMP_TEST_MODE', 0)
     if test:
         # use only 5 subjects, otherwise take all
-        t1_names = t1_names[:4]
+        t1_names = t1_names[:5]
     X, y = [], []
     for idx, t1_next in enumerate(t1_names):
         X.append(t1_next)
