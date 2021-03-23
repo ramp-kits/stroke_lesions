@@ -74,7 +74,7 @@ class PointEstimator(BaseEstimator):
         y_loaded = np.empty([1, X.shape[1]])
         for i in range(len(X)):
             y_temp = load_img(y[i]).get_fdata()
-            self.image_size = y_temp.shape
+            self.img_shape = y_temp.shape
             y_temp = y_temp.reshape((1, -1))
             y_loaded[:, i*y_temp.shape[1]:(i+1)*y_temp.shape[1]] = y_temp
 
