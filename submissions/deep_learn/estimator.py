@@ -34,12 +34,9 @@ for gpu in gpus:
 mem = Memory('.')
 
 
-# @mem.cache
+@mem.cache
 def load_img_data(fname):
-    try:
-        load_img(fname).get_fdata()
-    except:
-        import pdb; pdb.set_trace()
+    load_img(fname).get_fdata()
     return load_img(fname).get_fdata()
 
 
@@ -600,13 +597,13 @@ def get_estimator():
         'image_size': (192, 224, 176),
         # out of memory if running on the whole img full unet model
         'patch_shape': (192, 224, 8),
-        'epochs': 3,
-        'batch_size': 3,
+        'epochs': 150,
+        'batch_size': 6,
         'initial_learning_rate': 0.01,
         'learning_rate_drop': 0.5,
         'learning_rate_patience': 5,
         'early_stopping_patience': 10,
-        'model_type': 'simple'  # 'simple' 'simple_unet' or 'unet'
+        'model_type': 'simple_unet'  # 'simple' 'simple_unet' or 'unet'
     }
 
     # initiate a deep learning algorithm
