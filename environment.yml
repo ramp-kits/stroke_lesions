@@ -11,7 +11,6 @@ dependencies:
   - matplotlib
 
   # Extra requirements
-  - cudatoolkit
   - tensorflow-gpu<2.4
   - pytorch
   - keras
@@ -21,6 +20,7 @@ dependencies:
 
   - pip
   - pip:
+    # - cudatoolkit
     - osfclient
     - ramp-workflow
     - ramp-utils

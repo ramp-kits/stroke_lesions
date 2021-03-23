@@ -6,3 +6,4 @@ lightgbm
 xgboost
 catboost
 tensorflow-gpu<2.4
+# cudatoolkit
