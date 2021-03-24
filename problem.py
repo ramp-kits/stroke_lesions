@@ -355,7 +355,7 @@ def _read_data(path):
     test = os.getenv('RAMP_TEST_MODE', 0)
     if test:
         # use only 5 subjects, otherwise take all
-        t1_names = t1_names[:100]
+        t1_names = t1_names[:3]
     X, y = [], []
     for idx, t1_next in enumerate(t1_names):
         X.append(t1_next)
