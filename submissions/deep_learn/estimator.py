@@ -558,7 +558,6 @@ class KerasSegmentationClassifier(BaseEstimator):
             gen_test,
             batch_size=1
         )
-        import pdb; pdb.set_trace()
 
         # for sake of memory we will want to keep bolean mask. True for lesion,
         # False for no lesion
@@ -598,13 +597,13 @@ def get_estimator():
         'image_size': (192, 224, 176),
         # out of memory if running on the whole img full unet model
         'patch_shape': (192, 224, 8),
-        'epochs': 5,
+        'epochs': 150,
         'batch_size': 6,
         'initial_learning_rate': 0.01,
         'learning_rate_drop': 0.5,
         'learning_rate_patience': 5,
         'early_stopping_patience': 10,
-        'model_type': 'simple_unet'  # 'simple' 'simple_unet' or 'unet'
+        'model_type': 'unet'  # 'simple' 'simple_unet' or 'unet'
     }
 
     # initiate a deep learning algorithm
