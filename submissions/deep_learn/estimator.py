@@ -47,7 +47,6 @@ def _dice_coefficient_loss(y_true, y_pred):
 def _dice_coefficient(y_true, y_pred, smooth=1.):
     y_true_f = K.flatten(y_true)
     y_pred_f = K.flatten(y_pred)
-
     intersection = K.sum(y_true_f * y_pred_f)
 
     return ((2. * intersection + smooth) / (K.sum(y_true_f) +
@@ -559,6 +558,7 @@ class KerasSegmentationClassifier(BaseEstimator):
             gen_test,
             batch_size=1
         )
+        import pdb; pdb.set_trace()
 
         # for sake of memory we will want to keep bolean mask. True for lesion,
         # False for no lesion
@@ -583,6 +583,7 @@ class KerasSegmentationClassifier(BaseEstimator):
                            _x_start: _x_end,
                            _y_start: _y_end,
                            _z_start: _z_end] = y_pred[idx, 0, ...]
+                idx += 1
         else:
             y_pred_fin[:, :_x_len, :_y_len, :_z_len] = y_pred[:, 0, ...]
         # remove the channel dimension
@@ -597,13 +598,13 @@ def get_estimator():
         'image_size': (192, 224, 176),
         # out of memory if running on the whole img full unet model
         'patch_shape': (192, 224, 8),
-        'epochs': 1,
+        'epochs': 5,
         'batch_size': 6,
         'initial_learning_rate': 0.01,
         'learning_rate_drop': 0.5,
         'learning_rate_patience': 5,
         'early_stopping_patience': 10,
-        'model_type': 'simple'  # 'simple' 'simple_unet' or 'unet'
+        'model_type': 'simple_unet'  # 'simple' 'simple_unet' or 'unet'
     }
 
     # initiate a deep learning algorithm
