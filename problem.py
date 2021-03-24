@@ -78,12 +78,7 @@ class DiceCoeff(BaseScoreType):
         if (not np.any(y_pred_mask)) & (not np.any(y_true_mask)):
             # if there is no true mask in the truth and prediction
             return 1
-        '''
-        dice = (
-            np.sum(np.logical_and(y_pred_mask, y_true_mask) * 2.0) /
-            (np.sum(y_pred_mask) + np.sum(y_true_mask))
-            )
-        '''
+
         smooth = 1.
         y_true_f = y_true_mask.flatten()
         y_pred_f = y_pred_mask.flatten()
@@ -138,7 +133,7 @@ class Recall(BaseScoreType):
                              predictions.y_pred,
                              valid_indexes)
 
-    def __call__(self, y_true_mask, y_pred_mask, valid_indices):
+    def __call__(self, y_true_mask, y_pred_mask, valid_indices=None):
         score = _calculate_score(y_true_mask, y_pred_mask,
                                  valid_indexes=valid_indices,
                                  func=self._calc_recall)
@@ -166,7 +161,7 @@ class HausdorffDistance(BaseScoreType):
                              predictions.y_pred,
                              valid_indexes)
 
-    def __call__(self, y_true_mask, y_pred_mask, valid_indices):
+    def __call__(self, y_true_mask, y_pred_mask, valid_indices=None):
         score = _calculate_score(y_true_mask, y_pred_mask,
                                  valid_indexes=valid_indices,
                                  func=self._calc_hausdorff)
@@ -211,7 +206,7 @@ class AbsoluteVolumeDifference(BaseScoreType):
                              predictions.y_pred,
                              valid_indexes)
 
-    def __call__(self, y_true_mask, y_pred_mask, valid_indices):
+    def __call__(self, y_true_mask, y_pred_mask, valid_indices=None):
         score = _calculate_score(y_true_mask, y_pred_mask,
                                  valid_indexes=valid_indices,
                                  func=self._calc_AVD)
@@ -360,7 +355,7 @@ def _read_data(path):
     test = os.getenv('RAMP_TEST_MODE', 0)
     if test:
         # use only 5 subjects, otherwise take all
-        t1_names = t1_names[:5]
+        t1_names = t1_names[:100]
     X, y = [], []
     for idx, t1_next in enumerate(t1_names):
         X.append(t1_next)
