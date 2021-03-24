@@ -6,8 +6,9 @@ from keras.layers.normalization import BatchNormalization
 from keras.layers import MaxPooling3D, UpSampling3D
 import tensorflow as tf
 from tensorflow.keras.layers import Conv3DTranspose  # , Deconvolution3D
-from keras_contrib.layers.normalization.instancenormalization import \
-    InstanceNormalization
+# from keras_contrib.layers.normalization.instancenormalization import \
+#     InstanceNormalization
+from keras import InstanceNormalization
 from keras.layers import Activation
 from keras.layers import Input, Conv3D
 from keras.layers.merge import concatenate

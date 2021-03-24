@@ -20,12 +20,10 @@ dependencies:
 
   - pip
   - pip:
-    # - cudatoolkit
     - osfclient
     - ramp-workflow
     - ramp-utils
     - imbalanced-learn
-    - git+https://www.github.com/keras-team/keras-contrib.git
 
     # Extra requirements pip
     - xgboost
