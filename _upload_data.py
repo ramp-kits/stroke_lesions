@@ -70,7 +70,7 @@ def upload_to_osf(username, password, local_path):
             n_train = int(count_t1 * split_train)
             train_indices = file_indices[:n_train]
             test_indices = file_indices[n_train:]
-            for idx, next_file in enumerate(used_dir.rglob(t1_name)):
+            for idx, next_file in enumerate(used_dir.glob(t1_name)):
                 prefix = next_file.name.split('_')[0]
                 lesion_file = (used_dir / (prefix + lesion_name))
                 if idx in train_indices:
