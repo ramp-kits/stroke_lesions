@@ -9,6 +9,13 @@ import tarfile
 # this script does the same as (from terminal)
 # osf -r -p your_password -u your_username upload local_path remote_path
 
+# Your data should be stored in the private and public directories. If you
+# already have each of those split to public/train public/test and
+# private/train, private/test all the data will be ziped and dumped as it is to
+# osf. Otherwise the split will be performed. Make sure that your lesion and T1
+# files are named correctly (here number_T1.nii.gz and related lesion:
+# number_lesion.nii.gz) and set the split to your liking (split_train)
+
 REMOTE_PATH = 'stroke'  # remote path where to store the data on OSF
 # if the data in this path already exists it will be overwritten
 PROJECT_CODE_PUBLIC = 't4uf8'  # to find your PROJECT_CODE navigate to your OSF
