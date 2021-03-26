@@ -24,6 +24,7 @@ dependencies:
     - ramp-workflow
     - ramp-utils
     - imbalanced-learn
+    - tensorflow-addons<0.12
 
     # Extra requirements pip
     - xgboost
