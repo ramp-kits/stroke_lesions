@@ -57,14 +57,13 @@ class DiceCoeff(BaseScoreType):
         # calculate dice on each image separately to save on loading too much
         # memory at once
         score = np.empty(len(y_true_mask))
-
         for idx in range(len(y_true_mask)):
             if valid_indexes is None:
                 valid_idx = slice(None, None)
             else:
                 valid_idx = valid_indexes[idx]
             y_true = load_img_data(y_true_mask[idx])[valid_idx].astype('int8')
-            y_pred = y_pred_mask[idx][valid_idx] * 1
+            y_pred = y_pred_mask[idx][valid_idx].astype('int8')()
 
             self.check_y_pred_dimensions(y_true, y_pred)
             check_mask(y_true)
@@ -83,11 +82,13 @@ class DiceCoeff(BaseScoreType):
         smooth = 1.
         y_true_f = y_true_mask.flatten()
         y_pred_f = y_pred_mask.flatten()
+        del y_true_mask, y_pred_mask
 
         intersection = np.sum(y_true_f * y_pred_f)
 
         dice = ((2. * intersection + smooth) / (np.sum(y_true_f) +
                 np.sum(y_pred_f) + smooth))
+        del y_true_f, y_pred_f
         return dice
 
 
