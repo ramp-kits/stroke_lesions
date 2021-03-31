@@ -20,7 +20,7 @@ RANDOM_STATE = 42
 mem = Memory('.')
 
 
-# @mem.cache
+@mem.cache
 def load_img_data(fname):
     return load_img(fname).get_fdata()
 
@@ -318,10 +318,10 @@ workflow = rw.workflows.Estimator()
 
 score_types = [
     DiceCoeff(),
-    # AbsoluteVolumeDifference(),
+    AbsoluteVolumeDifference(),
     # HausdorffDistance(),
-    # Recall(),
-    # Precision()
+    Recall(),
+    Precision()
 ]
 
 
