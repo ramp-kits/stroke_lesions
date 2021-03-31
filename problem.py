@@ -1,3 +1,6 @@
+# Author: Maria Telenczuk <https://github.com/maikia>
+# License: BSD 3 clause
+
 import glob
 import functools
 import os
@@ -23,9 +26,6 @@ mem = Memory('.')
 @mem.cache
 def load_img_data(fname):
     return load_img(fname).get_fdata()
-
-# Author: Maria Telenczuk <https://github.com/maikia>
-# License: BSD 3 clause
 
 
 # -------- define the scores --------
@@ -320,8 +320,8 @@ score_types = [
     DiceCoeff(),
     AbsoluteVolumeDifference(),
     # HausdorffDistance(),
-    Recall(),
-    Precision()
+    # Recall(),
+    # Precision()
 ]
 
 
