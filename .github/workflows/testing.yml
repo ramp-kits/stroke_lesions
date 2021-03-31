@@ -23,7 +23,6 @@ jobs:
           python-version: 3.8
           auto-activate-base: false
       - run: |
-          conda activate ramp-stroke
           python download_data.py
           ramp-test --quick-test
   build_pip:
