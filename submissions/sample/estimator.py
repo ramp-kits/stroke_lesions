@@ -17,6 +17,8 @@ class Dummy(BaseEstimator, ClassifierMixin, TransformerMixin):
         x_data = load_img(x_path)
         x_shape = x_data.shape
         y = np.ones((len(X), x_shape[0], x_shape[1], x_shape[2]))
+        # transform to boolean to save memory
+        y = y == 1
 
         return y
 
