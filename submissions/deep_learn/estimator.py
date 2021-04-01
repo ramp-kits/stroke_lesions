@@ -86,10 +86,13 @@ class KerasSegmentationClassifier(BaseEstimator):
                  learning_rate_drop=0.5, batch_size=2, workers=1,
                  patch_shape=None, image_loader_factory=ImageLoader,
                  skip_blank=True,
-                 depth=4, model_type='unet'):
+                 model_type='unet'):
         """
         image_size: tuple with three elements (x, y, z)
-            which are the dimensions of the images
+            which are the dimensions to cut to the original image before
+            training
+        image_size: tuple with three elements (x, y, z)
+            which are the dimensions of the original images
         epochs: int,
             cutoff the training after this many epochs
         initial_learning_rate: float,
@@ -117,7 +120,6 @@ class KerasSegmentationClassifier(BaseEstimator):
         self.early_stopping_patience = early_stopping_patience
         self.patch_shape = patch_shape
         self.skip_blank = skip_blank
-        self.depth = depth
         if patch_shape:
             assert_msg = ('this estimator only works with patches of the last '
                           'dimension which are divisible by the image size')
@@ -174,7 +176,7 @@ class KerasSegmentationClassifier(BaseEstimator):
         return np.asarray(
             np.mgrid[start[0]:stop[0]:step[0],
                      start[1]:stop[1]:step[1],
-                     start[2]:stop[2]:step[2]].reshape(3, -1).T, dtype=np.int
+                     start[2]:stop[2]:step[2]].reshape(3, -1).T, dtype=np.int8
         )
     # ###
 
@@ -219,7 +221,7 @@ class KerasSegmentationClassifier(BaseEstimator):
 
         X = np.zeros((_batch_size, 1) + self.input_shape)
         if train:
-            Y = np.zeros((_batch_size, 1) + self.input_shape, dtype='float32')
+            Y = np.zeros((_batch_size, 1) + self.input_shape, dtype=np.int8)
 
         if indices is None:
             indices = list(range(img_loader.n_paths))
@@ -419,10 +421,6 @@ class KerasSegmentationClassifier(BaseEstimator):
             in the convolution network will have. Following layers will contain
             a multiple of this number. Lowering this number will likely reduce
             the amount of memory required to train the model.
-        :param depth: indicates the depth of the U-shape for the model.
-            The greater the depth, the more max pooling layers will be added
-            to the model. Lowering the depth may reduce the amount of memory
-            required for training.
         :param input_shape: Shape of the input data
             (n_chanels, x_size, y_size, z_size). The x, y, and z sizes
             must be divisible by the pool size to the power of the depth
@@ -438,8 +436,9 @@ class KerasSegmentationClassifier(BaseEstimator):
         current_layer = inputs
         levels = list()
 
+        depth = 4
         # add levels with max pooling
-        for layer_depth in range(self.depth):
+        for layer_depth in range(depth):
             layer1 = self._create_convolution_block(
                 input_layer=current_layer,
                 n_filters=n_base_filters*(2**layer_depth),
@@ -450,14 +449,14 @@ class KerasSegmentationClassifier(BaseEstimator):
                 n_filters=n_base_filters*(2**layer_depth)*2,
                 batch_normalization=batch_normalization
                 )
-            if layer_depth < self.depth - 1:
+            if layer_depth < depth - 1:
                 current_layer = MaxPooling3D(pool_size=pool_size)(layer2)
                 levels.append([layer1, layer2, current_layer])
             else:
                 current_layer = layer2
                 levels.append([layer1, layer2])
         # add levels with up-convolution or up-sampling
-        for layer_depth in range(self.depth-2, -1, -1):
+        for layer_depth in range(depth-2, -1, -1):
             up_convolution = self._get_up_convolution(
                 pool_size=pool_size,
                 deconvolution=deconvolution,
@@ -530,16 +529,11 @@ class KerasSegmentationClassifier(BaseEstimator):
         output_image_shape = np.asarray(
             np.divide(image_shape,
                       np.power(pool_size, depth)
-                      ), dtype=np.int32).tolist()
+                      ), dtype=np.int8).tolist()
         return tuple([None, n_filters] + output_image_shape)
 
     def _get_up_convolution(self, n_filters, pool_size, kernel_size=(2, 2, 2),
                             strides=(2, 2, 2), deconvolution=False):
-        # if deconvolution:
-        #    kernel_size = strides = pool_size
-        #    return Deconvolution3D(filters=n_filters, kernel_size=kernel_size,
-        #                           strides=strides)
-        # else:
         return UpSampling3D(size=pool_size, data_format='channels_first')
 
     def predict(self, X):
