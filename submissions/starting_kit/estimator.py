@@ -96,6 +96,8 @@ class PointEstimator(BaseEstimator):
         y = y_pred.reshape(-1, self.img_shape[0],
                            self.img_shape[1],
                            self.img_shape[2])
+        # convert y to boolean to save on memory
+        y = y == 1
         return y
 
 
