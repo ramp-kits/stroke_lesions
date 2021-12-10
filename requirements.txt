@@ -9,3 +9,7 @@ matplotlib
 nilearn
 osfclient
 scipy
+jupyterlab
+bids
+torch
+wget
