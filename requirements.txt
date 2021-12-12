@@ -7,7 +7,6 @@ scikit-image>=0.18
 pandas
 matplotlib
 nilearn
-osfclient
 scipy
 jupyterlab
 bids
