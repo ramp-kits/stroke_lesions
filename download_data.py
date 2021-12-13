@@ -21,5 +21,5 @@ def dummy_fetch(*args, **kwargs):
 
 if __name__ == '__main__':
     print('Warning: Data is not actually being fetched. See documentation for instructions on how to get a local copy'
-          'of the data.')
+          ' of the data.')
     dummy_fetch()
