@@ -15,9 +15,8 @@ def dummy_fetch(*args, **kwargs):
     None
     '''
     dest_path = 'data'
-    pathlib.Path(dest_path).mkdir(parents=True, exist_ok=True)
-    shutil.copytree('tests/bids_sample', join(dest_path, 'train'))
-    shutil.copytree('tests/bids_sample', join(dest_path, 'test'))
+    # pathlib.Path(dest_path).mkdir(parents=True, exist_ok=True)
+    shutil.copytree('tests/bids_sample', join(dest_path))
     return
 
 if __name__ == '__main__':

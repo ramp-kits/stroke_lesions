@@ -67,7 +67,7 @@ class DiceCoeff():
             # First sample is already loaded; let's not waste the loading.
             if(idx != 0):
                 dat = BIDSLoader.load_image_tuple(prediction_object.pred)
-            # Note: If you want to get the weighted mean, use self._calc_score_parts
+            # Note: If you want to get the weighted mean, use self.calc_score_parts
             sd_score = self.calc_score(dat, y_true[idx, ...])
             fscore += sd_score
 
@@ -93,12 +93,12 @@ class DiceCoeff():
         '''
         # Reshape to use dot product
         # NOTE: This computation of the coefficient allows for continuous values in the prediction.
-        overlap, sum0, sum1 = DiceCoeff._calc_score_parts(array_0, array_1)
+        overlap, sum0, sum1 = DiceCoeff.calc_score_parts(array_0, array_1)
         sorenson = overlap / (sum0 + sum1)
         return sorenson
 
     @staticmethod
-    def _calc_score_parts(array_0: np.array,
+    def calc_score_parts(array_0: np.array,
                     array_1: np.array):
         '''
         Computes the three parts of the Sørensen–Dice coefficient: overlap and 2 positives

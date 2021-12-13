@@ -51,8 +51,8 @@ class TestDiceCoeff(unittest.TestCase):
         expected_coef = 2*true_positives_fizzbuzz / (array_fizz_pos + array_buzz_pos)
         array_fizz_image = np.reshape(array_fizz, (10,10,10))
         array_buzz_image = np.reshape(array_buzz, (10,10,10))
-        self.assertEqual(dice._calc_score(array_fizz_image, array_buzz_image), expected_coef)
-        self.assertEqual(dice._calc_score(array_buzz_image, array_fizz_image), expected_coef)
+        self.assertEqual(dice.calc_score(array_fizz_image, array_buzz_image), expected_coef)
+        self.assertEqual(dice.calc_score(array_buzz_image, array_fizz_image), expected_coef)
 
         # While we're here; test the call
         # self.assertEqual(dice(array_fizz_image, array_buzz_image), expected_coef)

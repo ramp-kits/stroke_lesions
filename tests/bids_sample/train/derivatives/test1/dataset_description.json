@@ -1,0 +1,19 @@
+{
+	"Name": "test1",
+	"BIDSVersion": "1.6.0",
+	"Authors": ["NPNL"],
+	"PipelineDescription": {
+		"Name": "test1"
+	},
+	"GeneratedBy": [{
+		"Name": "test1",
+		"Version": "1.0",
+		"Container": {
+			"Type": "singularity",
+			"Tag": "None"
+			}
+		}],
+	"SourceDatasets": [{
+		"URL": "github.com/"
+		}]
+}

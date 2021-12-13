@@ -46,6 +46,7 @@ try:
                                    label_names=training['label_names'],
                                    batch_size=training['batch_size'])
 except BIDSValidationError:
+    print('Warning: BIDS default path is not valid. Consider modifying config.py to match your data structure.')
     # default training path not valid; ignore
     pass
 
@@ -58,5 +59,6 @@ try:
                                   label_names=testing['label_names'],
                                   batch_size=testing['batch_size'])
 except BIDSValidationError:
+    print('Warning: BIDS default path is not valid. Consider modifying config.py to match your data structure.')
     # default testing path not valid; ignore
     pass

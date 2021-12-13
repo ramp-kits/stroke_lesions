@@ -12,20 +12,20 @@ class TestBIDSLoader(unittest.TestCase):
 
     def test_BIDSLoader_init_empty_data(self):
         test_dir = os.path.dirname(__file__)
-        root_dir = os.path.join(test_dir, 'bids_sample')
+        root_dir = os.path.join(test_dir, 'bids_sample/train')
         self.assertRaises(TypeError, BIDSLoader, root_dir=root_dir )
         return
 
     def test_BIDSLoader_init_empty_target(self):
         test_dir = os.path.dirname(__file__)
-        root_dir = os.path.join(test_dir, 'bids_sample')
+        root_dir = os.path.join(test_dir, 'bids_sample/train')
         data_ent = [{'subject': '123'}]
         self.assertRaises(TypeError, BIDSLoader, root_dir=root_dir, data_entities=data_ent)
         return
 
     def test_BIDSLoader_init_correct(self):
         test_dir = os.path.dirname(__file__)
-        root_dir = os.path.join(test_dir, 'bids_sample')
+        root_dir = os.path.join(test_dir, 'bids_sample/train')
         data_ent = [{'subject': '123'}]
         target_ent = [{'subject': '123'}]
         batch_size = 2
@@ -39,7 +39,7 @@ class TestBIDSLoader(unittest.TestCase):
 
     def test_BIDSLoader_init_dataisderivatives_blank(self):
         test_dir = os.path.dirname(__file__)
-        root_dir = os.path.join(test_dir, 'bids_sample')
+        root_dir = os.path.join(test_dir, 'bids_sample/train')
         data_ent = [{'subject': '123', 'session': '5'}, {'subject': '456', 'session': '5'}]
         target_ent = [{'subject': '123'}]
         batch_size = 2
@@ -52,7 +52,7 @@ class TestBIDSLoader(unittest.TestCase):
 
     def test_BIDSLoader_init_dataisderivatives_input(self):
         test_dir = os.path.dirname(__file__)
-        root_dir = os.path.join(test_dir, 'bids_sample')
+        root_dir = os.path.join(test_dir, 'bids_sample/train')
         data_ent = [{'subject': '123', 'session': '5'}, {'subject': '456', 'session': '5'}]
         target_ent = [{'subject': '123'}, {'subject': '429'}]
 
@@ -64,7 +64,7 @@ class TestBIDSLoader(unittest.TestCase):
 
     def test_BIDSLoader_init_targetisderivatives_blank(self):
         test_dir = os.path.dirname(__file__)
-        root_dir = os.path.join(test_dir, 'bids_sample')
+        root_dir = os.path.join(test_dir, 'bids_sample/train')
         data_ent = [{'subject': '123', 'session': '5'}, {'subject': '456', 'session': '5'}]
         target_ent = [{'subject': '123'}, {'subject': '429'}]
 
@@ -76,7 +76,7 @@ class TestBIDSLoader(unittest.TestCase):
 
     def test_BIDSLoader_init_targetisderivatives_input(self):
         test_dir = os.path.dirname(__file__)
-        root_dir = os.path.join(test_dir, 'bids_sample')
+        root_dir = os.path.join(test_dir, 'bids_sample/train')
         data_ent = [{'subject': '123', 'session': '5'}, {'subject': '456', 'session': '5'}]
         target_ent = [{'subject': '123'}, {'subject': '429'}]
 
@@ -130,7 +130,7 @@ class TestBIDSLoader(unittest.TestCase):
     def test_getmatchingimages_reqents(self):
         req_ents = {'subject': '001'}
         test_directory = os.path.dirname(__file__)
-        bids_dataset = bids.BIDSLayout(root=os.path.join(test_directory, 'bids_sample'))
+        bids_dataset = bids.BIDSLayout(root=os.path.join(test_directory, 'bids_sample/train'))
         image_to_match = bids_dataset.get(extension='nii.gz')[0]
         returned_images = BIDSLoader.get_matching_images(image_to_match=image_to_match, bids_dataset=bids_dataset,
                                                              required_entities=req_ents)
@@ -142,7 +142,7 @@ class TestBIDSLoader(unittest.TestCase):
         req_ents = {'subject': '001'}
         matching_ents = ['session']
         test_directory = os.path.dirname(__file__)
-        bids_dataset = bids.BIDSLayout(root=os.path.join(test_directory, 'bids_sample'))
+        bids_dataset = bids.BIDSLayout(root=os.path.join(test_directory, 'bids_sample/train'))
         image_to_match = bids_dataset.get(extension='nii.gz')[0]
         returned_session = BIDSLoader.get_matching_images(image_to_match=image_to_match,
                                                                bids_dataset=bids_dataset,
@@ -157,7 +157,7 @@ class TestBIDSLoader(unittest.TestCase):
 
     def test_length(self):
         test_directory = os.path.dirname(__file__)
-        root_dir = os.path.join(test_directory, 'bids_sample')
+        root_dir = os.path.join(test_directory, 'bids_sample/train')
         target_derivatives_names = ['test1']
         bdc = BIDSLoader(root_dir=root_dir,
                              data_entities=[{'suffix': 'T1w', 'session': '', 'subject': ''},
@@ -170,7 +170,7 @@ class TestBIDSLoader(unittest.TestCase):
     def test_load_sample(self):
         # matching_ents = ['subject', 'session']
         test_directory = os.path.dirname(__file__)
-        root_dir = os.path.join(test_directory, 'bids_sample')
+        root_dir = os.path.join(test_directory, 'bids_sample/train')
         target_derivatives_names = ['test1']
         bdc = BIDSLoader(root_dir=root_dir,
                                        data_entities = [{'suffix': 'T1w', 'session': '', 'subject': ''},
@@ -185,7 +185,7 @@ class TestBIDSLoader(unittest.TestCase):
 
     def test_load_batch(self):
         test_directory = os.path.dirname(__file__)
-        root_dir = os.path.join(test_directory, 'bids_sample')
+        root_dir = os.path.join(test_directory, 'bids_sample/train')
         target_derivatives_names = ['test1']
         bdc = BIDSLoader(root_dir=root_dir,
                              data_entities=[{'suffix': 'T1w', 'session': '', 'subject': ''},
@@ -200,7 +200,7 @@ class TestBIDSLoader(unittest.TestCase):
 
     def test_load_tuple(self):
         test_directory = os.path.dirname(__file__)
-        root_dir = os.path.join(test_directory, 'bids_sample')
+        root_dir = os.path.join(test_directory, 'bids_sample/train')
         target_derivatives_names = ['test1']
         bdc = BIDSLoader(root_dir=root_dir,
                          data_entities=[{'suffix': 'T1w', 'session': '', 'subject': ''},
