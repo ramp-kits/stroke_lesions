@@ -1,5 +1,5 @@
 click
-ramp-workflow
+git+git://github.com/paris-saclay-cds/ramp-workflow
 ramp-utils
 numpy
 scikit-learn>=0.22
@@ -9,3 +9,7 @@ matplotlib
 nilearn
 osfclient
 scipy
+jupyterlab
+bids
+torch
+wget
