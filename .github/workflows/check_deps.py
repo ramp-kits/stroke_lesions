@@ -31,15 +31,58 @@ def assert_same_deps(deps_pip, deps_conda):
     "Check the two dependencies are the same with an explicit error message."
     deps_pip = set(deps_pip)
     deps_conda = set(deps_conda) - {'pip'}
+    # For requirements fetched via git, need to add parsing:
+    # environment.yml uses git+https://, requirements.txt uses git+git://
+    deps_pip = fix_req_set(deps_pip)
+    deps_conda = fix_req_set(deps_conda)
 
-    missing_conda = deps_pip - deps_conda
-    missing_pip = deps_conda - deps_pip
-    missing = missing_pip.union(missing_conda)
+    missing = deps_pip.symmetric_difference(deps_conda)
 
     assert len(missing) == 0, (
-        f"Missing dependency {missing_conda} in `environment.yml` and"
-        f"dependencies {missing_pip} in `extra_libraries.tst`"
+        f"Missing dependency {deps_pip.difference(deps_conda)} in `environment.yml` and "
+        f"dependencies {deps_conda.difference(deps_pip)} in `requirements.txt`"
     )
+    return
+
+def fix_req_set(req_set: set):
+    '''
+    Parses through the input set and replaces entries starting with 'git+git://' or 'git+https://' with entries with
+    those fields removed.
+    Parameters
+    ----------
+    req_set : set
+        Set containing the requirements to fix.
+
+    Returns
+    -------
+    set
+        Set with entries starting with 'git+git://' or 'git+https://' removed.
+    '''
+    returned_set = set()
+    for req in req_set:
+        returned_set.add(remove_git_prefix(req))
+    return returned_set
+
+def remove_git_prefix(req_name: str) -> str:
+    '''
+    For strings starting with either git+git:// or git+https://, remove these and return the remainder.
+    Parameters
+    ----------
+    req_name : str
+        String from which to remove the git prefix, if present.
+
+    Returns
+    -------
+    str
+        String without the git prefix.
+    '''
+    if(req_name.startswith('git+')):
+        # More generally, can use req_name[req_name.index('//')+2:], but would do more than is stated in the docstring.
+        if(req_name.startswith('git+git://')):
+            return req_name.replace('git+git://', '')
+        elif(req_name.startswith('git+https://')):
+            return req_name.replace('git+https://', '')
+    return req_name
 
 
 if __name__ == '__main__':

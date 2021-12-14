@@ -11,5 +11,4 @@ nilearn
 scipy
 jupyterlab
 bids
-torch
 wget
