@@ -1,5 +1,3 @@
-import rampwf
-from prediction import BIDSPrediction
 from rampwf.utils.importing import import_module_from_source
 import os
 import config

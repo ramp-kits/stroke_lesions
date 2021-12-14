@@ -1,7 +1,4 @@
-from sklearn.metrics import f1_score
 import numpy as np
-from rampwf.score_types.base import BaseScoreType
-import inspect
 from bids_loader import BIDSLoader
 
 class DiceCoeff():
@@ -59,9 +56,8 @@ class DiceCoeff():
         fscore = 0
         # Load example to ensure that the size fits
         dat = estimator.predict(BIDSLoader.load_image_tuple(Y_pred.y_pred[0].pred))
-        fscore_list = []
         if (not self.check_y_pred_dimensions(y_true[0,...], dat)):
-            raise (ValueError(f'Shape mismatch between y_true {y_true.shape} and y_pred {y_pred.shape}'))
+            raise (ValueError(f'Shape mismatch between y_true {y_true.shape} and y_pred {dat}'))
 
         for idx, prediction_object in enumerate(Y_pred.y_pred):
             # First sample is already loaded; let's not waste the loading.

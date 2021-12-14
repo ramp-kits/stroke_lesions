@@ -1,4 +1,5 @@
-import pathlib, shutil
+import shutil
+import os
 from os.path import join
 
 def dummy_fetch(*args, **kwargs):
@@ -16,10 +17,13 @@ def dummy_fetch(*args, **kwargs):
     '''
     dest_path = 'data'
     # pathlib.Path(dest_path).mkdir(parents=True, exist_ok=True)
-    shutil.copytree('tests/bids_sample', join(dest_path))
+    self_dir = os.path.dirname(__file__)
+
+    shutil.copytree(join(self_dir, 'tests', 'bids_sample'), join(dest_path))
     return
 
 if __name__ == '__main__':
+    dummy_fetch()
     print('Warning: Data is not actually being fetched. See documentation for instructions on how to get a local copy'
           ' of the data.')
-    dummy_fetch()
+    print(f'Data saved in {os.path.dirname(__file__)}')

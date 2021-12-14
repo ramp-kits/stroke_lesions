@@ -1,5 +1,6 @@
 from bids_loader import BIDSLoader
 from os.path import join
+import os
 from bids.exceptions import BIDSValidationError
 
 estimator_filename = 'estimator.py'
@@ -38,6 +39,12 @@ testing = {'dir_name':                 join(data_path, 'test'),
 
 
 try:
+    if(not os.path.exists(training['dir_name'])):
+        train_path = join(os.path.dirname(__file__), data_path, 'train')
+        if(os.path.exists(train_path)):
+            print(f'Changing training data path to {train_path}')
+            training['dir_name'] = train_path
+
     bids_loader_train = BIDSLoader(root_dir=training['dir_name'],
                                    data_entities=training['data_entities'],
                                    target_entities=training['target_entities'],
@@ -51,6 +58,11 @@ except BIDSValidationError:
     pass
 
 try:
+    if (not os.path.exists(testing['dir_name'])):
+        test_path = join(os.path.dirname(__file__), data_path, 'test')
+        if (os.path.exists(test_path)):
+            print(f'Changing training data path to {test_path}')
+            testing['dir_name'] = test_path
     bids_loader_test = BIDSLoader(root_dir=testing['dir_name'],
                                   data_entities=testing['data_entities'],
                                   target_entities=testing['target_entities'],

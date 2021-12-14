@@ -1,20 +1,10 @@
-import bids
-bids.config.set_option('extension_initial_dot', True)  # bids warning suppression
+import sklearn, os, numpy as np, warnings
 
-import rampwf as wf
-import torch as T
-import sklearn
 import prediction
 from bids_workflow import BIDSWorkflow
-from rampwf.prediction_types.base import BasePrediction
-
 from scoring import DiceCoeff
-import os
-import numpy as np
-
 import config
 from bids_loader import BIDSLoader
-import warnings
 
 problem_title = "ATLAS Stroke Lesion Segmentation"
 
