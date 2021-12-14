@@ -20,6 +20,7 @@ dependencies:
   - pip:
     - osfclient
     - git+https://github.com/paris-saclay-cds/ramp-workflow
+    - git+https://github.com/AlexandreHutton/stroke
     - ramp-utils
     - imbalanced-learn
     - tensorflow-addons<0.12

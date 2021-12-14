@@ -26,4 +26,3 @@ if __name__ == '__main__':
     dummy_fetch()
     print('Warning: Data is not actually being fetched. See documentation for instructions on how to get a local copy'
           ' of the data.')
-    print(f'Data saved in {os.path.dirname(__file__)}')

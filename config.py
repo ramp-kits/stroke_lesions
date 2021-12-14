@@ -6,7 +6,7 @@ from bids.exceptions import BIDSValidationError
 estimator_filename = 'estimator.py'
 data_path = 'data/'
 # Used for checking that the data was downloaded correctly:
-encrypted_hash = '417c77c9d6dbd2fbdaecc70c33516299f579ad79fca8cebbff344255a53dbf67'
+encrypted_hash = 'b9cdf26486e7dd325d5d6617f2218204bbaa0b649dbca03e729a41a449bef671'
 
 training = {'batch_size':               5,
             'dir_name':                join(data_path, 'train'),
