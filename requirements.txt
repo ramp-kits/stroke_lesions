@@ -12,3 +12,4 @@ scipy
 jupyterlab
 bids
 wget
+jupyter_contrib_nbextensions
