@@ -1,12 +1,13 @@
+import warnings
+from bids import BIDSLayout
+from bids.layout.models import BIDSImageFile
 import numpy as np
 from collections import defaultdict
 
 import bids
-bids.config.set_option('extension_initial_dot', True)  # bids warning suppression
-from bids.layout.models import BIDSImageFile
-from bids import BIDSLayout
-
-import warnings
+bids.config.set_option(
+    'extension_initial_dot',
+    True)  # bids warning suppression
 
 
 class BIDSLoader():
@@ -42,6 +43,7 @@ class BIDSLoader():
            label_names : list [str]
                Names of the values of the target, if any.
            '''
+
     def __init__(self,
                  root_dir: str,
                  data_entities: list,
@@ -54,16 +56,16 @@ class BIDSLoader():
 
         self.root_dir = root_dir
 
-        if(type(data_entities) is list):
+        if(isinstance(data_entities, list)):
             self.data_entities = data_entities
-        elif(type(data_entities) is dict or type(data_entities) is defaultdict):
+        elif(isinstance(data_entities, dict) or isinstance(data_entities, defaultdict)):
             self.data_entities = [data_entities]
         else:
             raise(TypeError('data_entities should be a list of dicts'))
 
-        if(type(target_entities) is list):
+        if(isinstance(target_entities, list)):
             self.target_entities = target_entities
-        elif(type(target_entities) is dict or type(target_entities) is defaultdict):
+        elif(isinstance(target_entities, dict) or isinstance(target_entities, defaultdict)):
             self.target_entities = [target_entities]
         else:
             raise(TypeError('target_entities should be a list of dicts'))
@@ -81,12 +83,17 @@ class BIDSLoader():
             if(name is None):
                 self.data_bids.append(default_data)
             else:
-                self.data_bids.append(bids.BIDSLayout(root=root_dir, derivatives=True).derivatives[name])
-        self.data_is_derivatives = [s is not None for s in self.data_derivatives_names]
+                self.data_bids.append(
+                    bids.BIDSLayout(
+                        root=root_dir,
+                        derivatives=True).derivatives[name])
+        self.data_is_derivatives = [
+            s is not None for s in self.data_derivatives_names]
 
         # Deal with target + derivatives
         if(target_derivatives_names is None):
-            self.target_derivatives_names = [None for _ in self.target_entities]  # change to list
+            self.target_derivatives_names = [
+                None for _ in self.target_entities]  # change to list
         else:
             self.target_derivatives_names = target_derivatives_names
         self.target_bids = []
@@ -94,8 +101,12 @@ class BIDSLoader():
             if(name is None):
                 self.target_bids.append(default_data)
             else:
-                self.target_bids.append(bids.BIDSLayout(root=root_dir, derivatives=True).derivatives[name])
-        self.target_is_derivatives = [s is not None for s in self.target_derivatives_names]
+                self.target_bids.append(
+                    bids.BIDSLayout(
+                        root=root_dir,
+                        derivatives=True).derivatives[name])
+        self.target_is_derivatives = [
+            s is not None for s in self.target_derivatives_names]
 
         self.unmatched_image_list = []
         self.unmatched_target_list = []
@@ -106,7 +117,8 @@ class BIDSLoader():
             self.target_shape = self.target_list[0][0].get_image().shape
 
         if(root_list is not None):
-            raise(NotImplementedError('Processing root list has not yet been implemented.'))
+            raise(NotImplementedError(
+                'Processing root list has not yet been implemented.'))
 
         self.label_names = label_names
         self._prediction_label_names = self.label_names  # RAMP convention
@@ -121,7 +133,8 @@ class BIDSLoader():
         None
         '''
 
-        # First get empty entities; these are used to flag that entities must match
+        # First get empty entities; these are used to flag that entities must
+        # match
         entities_to_match = set()  # Use set to avoid having to check for uniqueness
         data_entities_full = []
         target_entities_full = []
@@ -140,7 +153,9 @@ class BIDSLoader():
         # Create file list
         self.data_list = []
         self.target_list = []
-        bids_set = bids.BIDSLayout(root=self.root_dir, derivatives=self.data_is_derivatives[0])
+        bids_set = bids.BIDSLayout(
+            root=self.root_dir,
+            derivatives=self.data_is_derivatives[0])
         if(self.data_is_derivatives[0]):
             bids_set = bids_set.derivatives[self.data_derivatives_names[0]]
 
@@ -151,12 +166,14 @@ class BIDSLoader():
             sample_list = [im]
             for idx, data_entities in enumerate(data_entities_full[1:]):
                 new_sample = self.get_matching_images(image_to_match=im,
-                                                       bids_dataset=self.data_bids[idx+1],  # +1 since we skip first
-                                                       matching_entities=entities_to_match,
-                                                       required_entities=data_entities)
+                                                      # +1 since we skip first
+                                                      bids_dataset=self.data_bids[idx + 1],
+                                                      matching_entities=entities_to_match,
+                                                      required_entities=data_entities)
                 if(len(new_sample) > 1):
-                    warnings.warn(f'Image matching returned more than one match for data; make either required_entities or ' \
-                                  f'matching_entities to be more specific. {im}')
+                    warnings.warn(
+                        f'Image matching returned more than one match for data; make either required_entities or '
+                        f'matching_entities to be more specific. {im}')
                 elif(len(new_sample) == 0):
                     self.unmatched_image_list.append(im)
                     warnings.warn(f'No match found for image {im}')
@@ -167,13 +184,15 @@ class BIDSLoader():
             # Similarly for target data
             sample_list = []
             for idx, target_entities in enumerate(target_entities_full):
-                new_sample = self.get_matching_images(image_to_match=im,
-                                                       bids_dataset=self.target_bids[idx],
-                                                       matching_entities=entities_to_match,
-                                                       required_entities=target_entities)
+                new_sample = self.get_matching_images(
+                    image_to_match=im,
+                    bids_dataset=self.target_bids[idx],
+                    matching_entities=entities_to_match,
+                    required_entities=target_entities)
                 if(len(new_sample) > 1):
-                    warnings.warn('Image matching returned more than one match for target; either make ' \
-                                  f'required_entities or matching_entities more specific. (image: {im})')
+                    warnings.warn(
+                        'Image matching returned more than one match for target; either make '
+                        f'required_entities or matching_entities more specific. (image: {im})')
                 elif(len(new_sample) == 0):
                     self.unmatched_target_list.append(im)
                     warnings.warn(f'No match found for image {im}')
@@ -185,13 +204,12 @@ class BIDSLoader():
             warnings.warn('Not all images had matches.')
         return
 
-
     @staticmethod
     def get_matching_images(image_to_match: BIDSImageFile,
-                             bids_dataset: BIDSLayout,
-                             matching_entities: list = None,
-                             required_entities: dict = None,
-                             ):
+                            bids_dataset: BIDSLayout,
+                            matching_entities: list = None,
+                            required_entities: dict = None,
+                            ):
         '''
         Returns a list of images from the BIDS dataset that has the specified required_entities and has the same
         value for entities listed in matching_entities as the image_to_match.
@@ -219,13 +237,13 @@ class BIDSLoader():
         if(required_entities is None):
             required_entities = {}
 
-
         ents_to_match = {}
         im_entities = image_to_match.get_entities()
         for k in matching_entities:
             if(k in im_entities.keys()):
                 ents_to_match[k] = im_entities[k]
-        potential_matches = bids_dataset.get(**required_entities, **ents_to_match)
+        potential_matches = bids_dataset.get(
+            **required_entities, **ents_to_match)
         # Go through each potential image; remove those that don't match
         potential_idx = []
         for idx, potential_im in enumerate(potential_matches):
@@ -319,9 +337,9 @@ class BIDSLoader():
         data_shape = image_list[0][0].get_image().shape
         data = np.zeros((num_batch, num_dim, *data_shape), dtype=dtype)
         for idx, image_tuple in enumerate(image_list):
-            data[idx, ...] = BIDSLoader.load_image_tuple(image_tuple, dtype=dtype)
+            data[idx, ...] = BIDSLoader.load_image_tuple(
+                image_tuple, dtype=dtype)
         return data
-
 
     def load_sample(self, idx: int):
         '''
@@ -338,8 +356,16 @@ class BIDSLoader():
         np.array
             Array of shape (num_target, *image.shape) containing the target.
         '''
-        data = np.zeros((len(self.data_entities), *self.data_shape), dtype=np.float32)
-        target = np.zeros((len(self.target_entities), *self.target_shape), dtype=np.float32)
+        data = np.zeros(
+            (len(
+                self.data_entities),
+                *self.data_shape),
+            dtype=np.float32)
+        target = np.zeros(
+            (len(
+                self.target_entities),
+                *self.target_shape),
+            dtype=np.float32)
 
         for point_idx, point in enumerate(self.data_list[idx]):
             data[point_idx, ...] = point.get_image().get_fdata()
@@ -365,8 +391,12 @@ class BIDSLoader():
         np.array
             Array of shape (len(indices), num_target, *image.shape) containing data.
         '''
-        data = np.zeros((len(indices), len(self.data_entities), *self.data_shape), dtype=np.float32)
-        target = np.zeros((len(indices), len(self.target_entities), *self.target_shape), dtype=np.float32)
+        data = np.zeros((len(indices), len(self.data_entities),
+                        *self.data_shape), dtype=np.float32)
+        target = np.zeros((len(indices),
+                           len(self.target_entities),
+                           *self.target_shape),
+                          dtype=np.float32)
 
         for i, idx in enumerate(indices):
             data[i, ...], target[i, ...] = self.load_sample(idx)
