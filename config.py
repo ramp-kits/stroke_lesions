@@ -37,6 +37,8 @@ testing = {'dir_name': join(data_path, 'test'),
            'target_derivatives_names': ['ATLAS'],
            'label_names': ['not lesion', 'lesion']}
 
+is_quick_test = 'RAMP_TEST_MODE' in os.environ.keys()
+num_subjects_quick_test = 5
 
 try:
     if(not os.path.exists(training['dir_name'])):

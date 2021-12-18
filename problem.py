@@ -80,7 +80,11 @@ def get_train_data(path: str):
                                        target_derivatives_names=['ATLAS'],
                                        label_names=['not lesion', 'lesion'],
                                        batch_size=config.training['batch_size'])
-        return bids_loader_train.data_list, bids_loader_train.target_list
+
+        if(config.is_quick_test):
+            bids_loader_train.data_list[:config.num_subjects_quick_test], bids_loader_train.target_list[:config.num_subjects_quick_test]
+        else:
+            return bids_loader_train.data_list, bids_loader_train.target_list
 
 
 def get_test_data(path: str):
@@ -120,4 +124,7 @@ def get_test_data(path: str):
                                       label_names=['not lesion', 'lesion'],
                                       batch_size=config.testing['batch_size'])
 
-    return bids_loader_test.data_list, bids_loader_test.target_list
+    if(config.is_quick_test):
+        return bids_loader_test.data_list[:config.num_subjects_quick_test], bids_loader_test.target_list[:config.num_subjects_quick_test]
+    else:
+        return bids_loader_test.data_list, bids_loader_test.target_list
