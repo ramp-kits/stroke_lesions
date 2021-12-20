@@ -2,12 +2,15 @@ import shutil
 import os
 from os.path import join
 import config
-import wget, hash_check
+import wget
+import hash_check
 import hashlib
 import osfclient
 from _io import BufferedReader
 import argparse
-import tempfile, tarfile
+import tempfile
+import tarfile
+
 
 def dummy_fetch(*args, **kwargs):
     '''
@@ -29,6 +32,7 @@ def dummy_fetch(*args, **kwargs):
     shutil.copytree(join(self_dir, 'tests', 'bids_sample'), join(dest_path))
     return
 
+
 def data_fetch(check_hash=True):
     '''
 
@@ -49,8 +53,10 @@ def data_fetch(check_hash=True):
         if(check_hash_correct(filename, config.data['encrypted_hash'])):
             print('Data verified to be correct.')
         else:
-            print('There is something wrong with the data. Verify that the expected files are present.')
+            print(
+                'There is something wrong with the data. Verify that the expected files are present.')
     return
+
 
 def get_sha256(filename: str,
                block_size: int = 2**16):
@@ -113,7 +119,8 @@ def download_private(user: str,
     None
     '''
     osf_conn = osfclient.OSF(username=user, password=pword)
-    proj_list = [osf_conn.project(proj_id) for proj_id in config.data['private_osf_ids']]
+    proj_list = [osf_conn.project(proj_id)
+                 for proj_id in config.data['private_osf_ids']]
     store_list = [proj.storage('osfstorage') for proj in proj_list]
     tmpdir = tempfile.mkdtemp()
     for s in store_list:
@@ -126,9 +133,14 @@ def download_private(user: str,
                 tarf.close()
     return
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--private', required=False, action='store_true', default=False)
+    parser.add_argument(
+        '--private',
+        required=False,
+        action='store_true',
+        default=False)
     parser.add_argument('--username', required=False, type=str)
     parser.add_argument('--password', required=False, type=str)
     pargs = parser.parse_args()

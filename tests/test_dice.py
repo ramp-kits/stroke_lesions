@@ -2,6 +2,7 @@ from scoring import DiceCoeff
 import unittest
 import numpy as np
 
+
 class TestDiceCoeff(unittest.TestCase):
     def test_dicecoeff_init(self):
         dice = DiceCoeff()
@@ -36,11 +37,12 @@ class TestDiceCoeff(unittest.TestCase):
         array_fizz = np.zeros((10**3))
         array_buzz = np.zeros((10**3))
         # The slicing sets every 3rd entry to 1 for array_fizz, and every 5th for array_buzz
-        # Knowing the size of the arrays, we know what the coefficient should be
+        # Knowing the size of the arrays, we know what the coefficient should
+        # be
         array_fizz[slice(0, None, 3)] = 1
         array_buzz[slice(0, None, 5)] = 1
 
-        true_positives_fizzbuzz = np.divmod(len(array_fizz), 15)[0]+1
+        true_positives_fizzbuzz = np.divmod(len(array_fizz), 15)[0] + 1
 
         div, rem = np.divmod(len(array_fizz), 3)
         array_fizz_pos = div + (rem > 0)
@@ -48,11 +50,20 @@ class TestDiceCoeff(unittest.TestCase):
         div, rem = np.divmod(len(array_buzz), 5)
         array_buzz_pos = div + (rem > 0)
 
-        expected_coef = 2*true_positives_fizzbuzz / (array_fizz_pos + array_buzz_pos)
-        array_fizz_image = np.reshape(array_fizz, (10,10,10))
-        array_buzz_image = np.reshape(array_buzz, (10,10,10))
-        self.assertEqual(dice.calc_score(array_fizz_image, array_buzz_image), expected_coef)
-        self.assertEqual(dice.calc_score(array_buzz_image, array_fizz_image), expected_coef)
+        expected_coef = 2 * true_positives_fizzbuzz / \
+            (array_fizz_pos + array_buzz_pos)
+        array_fizz_image = np.reshape(array_fizz, (10, 10, 10))
+        array_buzz_image = np.reshape(array_buzz, (10, 10, 10))
+        self.assertEqual(
+            dice.calc_score(
+                array_fizz_image,
+                array_buzz_image),
+            expected_coef)
+        self.assertEqual(
+            dice.calc_score(
+                array_buzz_image,
+                array_fizz_image),
+            expected_coef)
 
         # While we're here; test the call
         # self.assertEqual(dice(array_fizz_image, array_buzz_image), expected_coef)

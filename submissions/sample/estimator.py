@@ -6,6 +6,7 @@ class BIDSEstimator(BaseEstimator):
     '''
     Estimator sample for RAMP stroke lesion segmentation.
     '''
+
     def __init__(self):
         '''
         Initialize estimator values (e.g. starting learning rate) here.
@@ -90,6 +91,7 @@ class BIDSEstimator(BaseEstimator):
             '''
         y = np.ones(X.shape, dtype=bool)
         return y
+
 
 def get_estimator():
     return BIDSEstimator

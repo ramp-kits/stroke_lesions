@@ -44,6 +44,7 @@ def assert_same_deps(deps_pip, deps_conda):
     )
     return
 
+
 def fix_req_set(req_set: set):
     '''
     Parses through the input set and replaces entries starting with 'git+git://' or 'git+https://' with entries with
@@ -63,6 +64,7 @@ def fix_req_set(req_set: set):
         returned_set.add(remove_git_prefix(req))
     return returned_set
 
+
 def remove_git_prefix(req_name: str) -> str:
     '''
     For strings starting with either git+git:// or git+https://, remove these and return the remainder.
@@ -77,7 +79,8 @@ def remove_git_prefix(req_name: str) -> str:
         String without the git prefix.
     '''
     if(req_name.startswith('git+')):
-        # More generally, can use req_name[req_name.index('//')+2:], but would do more than is stated in the docstring.
+        # More generally, can use req_name[req_name.index('//')+2:], but would
+        # do more than is stated in the docstring.
         if(req_name.startswith('git+git://')):
             return req_name.replace('git+git://', '')
         elif(req_name.startswith('git+https://')):
