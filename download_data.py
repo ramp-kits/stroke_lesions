@@ -1,13 +1,21 @@
 import shutil
 import os
 from os.path import join
-import config
 import wget
 import hashlib
 import osfclient
 import argparse
 import tempfile
 import tarfile
+
+
+data = {
+    'encrypted_hash': 'b9cdf26486e7dd325d5d6617f2218204bbaa0b649dbca03e729a41a449bef671',
+    'url': 'ftp://www.nitrc.org/fcon_1000/htdocs/indi/retro/ATLAS/releases/R2.0/ATLAS_R2.0_encrypted.tar.gz',
+    'private_osf_ids': [
+        '2rvym',
+        '3t8jg',
+        'nkr2e']}
 
 
 def dummy_fetch(*args, **kwargs):
@@ -42,13 +50,13 @@ def data_fetch(check_hash=True):
     -------
     None
     '''
-    wget.download(config.data['url'])
-    filename = os.path.basename(config.data['url'])
+    wget.download(data['url'])
+    filename = os.path.basename(data['url'])
 
     if(check_hash):
         print('')
         print('Checking data integrity; this may take a few minutes.')
-        if(check_hash_correct(filename, config.data['encrypted_hash'])):
+        if(check_hash_correct(filename, data['encrypted_hash'])):
             print('Data verified to be correct.')
         else:
             print(
@@ -118,7 +126,7 @@ def download_private(user: str,
     '''
     osf_conn = osfclient.OSF(username=user, password=pword)
     proj_list = [osf_conn.project(proj_id)
-                 for proj_id in config.data['private_osf_ids']]
+                 for proj_id in data['private_osf_ids']]
     store_list = [proj.storage('osfstorage') for proj in proj_list]
     tmpdir = tempfile.mkdtemp()
     for s in store_list:
@@ -142,7 +150,7 @@ if __name__ == '__main__':
     parser.add_argument('--username', required=False, type=str)
     parser.add_argument('--password', required=False, type=str)
     pargs = parser.parse_args()
-    if(config.is_quick_test):
+    if('RAMP_TEST_MODE' in os.environ.keys()):
         dummy_fetch()
         print(
             'Warning: Data is not actually being fetched. See documentation for instructions on how to get a local copy'

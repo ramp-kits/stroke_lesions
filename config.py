@@ -8,13 +8,7 @@ data_path = 'data/'
 # Used for checking that the data was downloaded correctly:
 
 # Data
-data = {
-    'encrypted_hash': 'b9cdf26486e7dd325d5d6617f2218204bbaa0b649dbca03e729a41a449bef671',
-    'url': 'ftp://www.nitrc.org/fcon_1000/htdocs/indi/retro/ATLAS/releases/R2.0/ATLAS_R2.0_encrypted.tar.gz',
-    'private_osf_ids': [
-        '2rvym',
-        '3t8jg',
-        'nkr2e']}
+
 
 training = {'batch_size': 5,
             'dir_name': join(data_path, 'train'),
