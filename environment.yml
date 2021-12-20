@@ -25,6 +25,7 @@ dependencies:
     - imbalanced-learn
     - tensorflow-addons<0.12
     - bids
+    - osfclient
     # Extra requirements pip
     - xgboost
     - catboost

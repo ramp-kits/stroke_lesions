@@ -12,4 +12,5 @@ scipy
 jupyterlab
 bids
 wget
+osfclient
 jupyter_contrib_nbextensions

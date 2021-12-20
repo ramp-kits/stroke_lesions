@@ -4,7 +4,10 @@ from os.path import join
 import config
 import wget, hash_check
 import hashlib
+import osfclient
 from _io import BufferedReader
+import argparse
+import tempfile, tarfile
 
 def dummy_fetch(*args, **kwargs):
     '''
@@ -94,12 +97,49 @@ def check_hash_correct(filename: str,
     return get_sha256(filename) == expected_hash
 
 
+def download_private(user: str,
+                     pword: str):
+    '''
+    Downloads the private dataset frmo OSF.
+    Parameters
+    ----------
+    user : str
+        OSF username. User must have been added to the private OSF project.
+    pword : str
+        OSF password associated with the username.
+
+    Returns
+    -------
+    None
+    '''
+    osf_conn = osfclient.OSF(username=user, password=pword)
+    proj_list = [osf_conn.project(proj_id) for proj_id in config.data['private_osf_ids']]
+    store_list = [proj.storage('osfstorage') for proj in proj_list]
+    tmpdir = tempfile.mkdtemp()
+    for s in store_list:
+        for f in s.files:
+            fname = f.name
+            if(fname.endswith('.tar.gz')):
+                f.write_to(join(tmpdir, fname))
+                tarf = tarfile.open(join(tmpdir, fname))
+                tarf.extractall('./')
+                tarf.close()
+    return
+
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--private', required=False, action='store_true', default=False)
+    parser.add_argument('--username', required=False, type=str)
+    parser.add_argument('--password', required=False, type=str)
+    pargs = parser.parse_args()
     if(config.is_quick_test):
         dummy_fetch()
         print(
             'Warning: Data is not actually being fetched. See documentation for instructions on how to get a local copy'
             ' of the data.')
+    elif(pargs.private):
+        print('Fetching private data; this will take a few minutes.')
+        download_private(user=pargs.username, pword=pargs.password)
     else:
         print('Fetching data; this will take a few minutes.')
         data_fetch()
