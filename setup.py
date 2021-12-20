@@ -10,7 +10,6 @@ setup(
         'bids_workflow',
         'config',
         'download_data',
-        'hash_check',
         'indi_reformat',
         'nii_slice',
         'prediction',

@@ -3,10 +3,8 @@ import os
 from os.path import join
 import config
 import wget
-import hash_check
 import hashlib
 import osfclient
-from _io import BufferedReader
 import argparse
 import tempfile
 import tarfile
