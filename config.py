@@ -54,15 +54,15 @@ try:
         if(os.path.exists(train_path)):
             print(f'Changing training data path to {train_path}')
             training['dir_name'] = train_path
-
-    bids_loader_train = BIDSLoader(
-        root_dir=training['dir_name'],
-        data_entities=training['data_entities'],
-        target_entities=training['target_entities'],
-        data_derivatives_names=training['data_derivatives_names'],
-        target_derivatives_names=training['target_derivatives_names'],
-        label_names=training['label_names'],
-        batch_size=training['batch_size'])
+    if(os.path.exists(training['dir_name'])):
+        bids_loader_train = BIDSLoader(
+            root_dir=training['dir_name'],
+            data_entities=training['data_entities'],
+            target_entities=training['target_entities'],
+            data_derivatives_names=training['data_derivatives_names'],
+            target_derivatives_names=training['target_derivatives_names'],
+            label_names=training['label_names'],
+            batch_size=training['batch_size'])
 except BIDSValidationError:
     print('Warning: BIDS default path is not valid. Consider modifying config.py to match your data structure.')
     # default training path not valid; ignore
@@ -74,14 +74,15 @@ try:
         if (os.path.exists(test_path)):
             print(f'Changing training data path to {test_path}')
             testing['dir_name'] = test_path
-    bids_loader_test = BIDSLoader(
-        root_dir=testing['dir_name'],
-        data_entities=testing['data_entities'],
-        target_entities=testing['target_entities'],
-        data_derivatives_names=testing['data_derivatives_names'],
-        target_derivatives_names=testing['target_derivatives_names'],
-        label_names=testing['label_names'],
-        batch_size=testing['batch_size'])
+    if(os.path.exists(testing['dir_name'])):
+        bids_loader_test = BIDSLoader(
+            root_dir=testing['dir_name'],
+            data_entities=testing['data_entities'],
+            target_entities=testing['target_entities'],
+            data_derivatives_names=testing['data_derivatives_names'],
+            target_derivatives_names=testing['target_derivatives_names'],
+            label_names=testing['label_names'],
+            batch_size=testing['batch_size'])
 except BIDSValidationError:
     print('Warning: BIDS default path is not valid. Consider modifying config.py to match your data structure.')
     # default testing path not valid; ignore
