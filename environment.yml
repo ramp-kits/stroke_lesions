@@ -18,6 +18,7 @@ dependencies:
   - scikit-image>=0.18
   - pip
   - pip:
+    - wheel
     - git+https://github.com/paris-saclay-cds/ramp-workflow
     - git+https://github.com/AlexandreHutton/stroke
     - wget
