@@ -3,11 +3,11 @@ import os
 import numpy as np
 import warnings
 
-from stroke import prediction
-from stroke.bids_workflow import BIDSWorkflow
-from stroke.scoring import DiceCoeff
-from stroke import stroke_config
-from stroke.bids_loader import BIDSLoader
+import prediction
+from bids_workflow import BIDSWorkflow
+from scoring import DiceCoeff
+import stroke_config
+from bids_loader import BIDSLoader
 
 problem_title = "ATLAS Stroke Lesion Segmentation"
 
