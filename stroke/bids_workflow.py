@@ -1,6 +1,6 @@
 from rampwf.utils.importing import import_module_from_source
 import os
-import config
+import stroke_config
 from bids_loader import BIDSLoader
 
 
@@ -55,7 +55,7 @@ class BIDSWorkflow():
         if(train_is is None):
             train_is = slice(None, None, None)
 
-        batch_size = config.training['batch_size']
+        batch_size = stroke_config.training['batch_size']
         estimator_module = import_module_from_source(
             os.path.join(
                 module_path,
