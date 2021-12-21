@@ -1,9 +1,11 @@
+from bids_loader import BIDSLoader
 import numpy as np
 from rampwf.prediction_types.base import BasePrediction
 
 import bids
-bids.config.set_option('extension_initial_dot', True)  # bids warning suppression
-from bids_loader import BIDSLoader
+bids.config.set_option(
+    'extension_initial_dot',
+    True)  # bids warning suppression
 
 
 class BIDSPrediction(BasePrediction):
@@ -32,13 +34,15 @@ class BIDSPrediction(BasePrediction):
         if(y_true is not None):
             if(fold_is is not None):
                 y_true = [y_true[i] for i in fold_is]
-            self.y_true = np.array([BIDSLoader.load_image_tuple(y) for y in y_true], dtype=bool)
+            self.y_true = np.array([BIDSLoader.load_image_tuple(y)
+                                   for y in y_true], dtype=bool)
         else:
             self.y_true = []
 
         if(y_pred is None and y_true is None):
             if(n_samples is None):
-                raise ValueError('Either y_pred, y_true, or n_samples must be defined')
+                raise ValueError(
+                    'Either y_pred, y_true, or n_samples must be defined')
             else:
                 self.y_pred = [np.nan for _ in range(n_samples)]
 
@@ -83,7 +87,7 @@ class BIDSPrediction(BasePrediction):
         '''
         is_nan = np.zeros((len(self.y_pred)), dtype=bool)
         for idx, pred in enumerate(self.y_pred):
-            if(type(pred) is float and np.isnan(pred)):
+            if(isinstance(pred, float) and np.isnan(pred)):
                 is_nan[idx] = 1
         return ~is_nan
 
@@ -118,7 +122,7 @@ class BIDSPrediction(BasePrediction):
         second_true = []
         # Remove NaN from list
         for p, t in zip(pred_list, true_list):
-            if(type(p) is float and np.isnan(p)):
+            if(isinstance(p, float) and np.isnan(p)):
                 continue
             second_pred.append(p)
             second_true.append(t)

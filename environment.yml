@@ -9,11 +9,6 @@ dependencies:
   - click
   - pandas
   - matplotlib
-  - wget
-  - torch
-  - bids
-  - jupyterlab
-
   # Extra requirements
   - tensorflow-gpu<2.4
   - pytorch
@@ -21,15 +16,18 @@ dependencies:
   - lightgbm
   - nilearn
   - scikit-image>=0.18
-
   - pip
   - pip:
-    - osfclient
-    - git+git://github.com/paris-saclay-cds/ramp-workflow
+    - git+https://github.com/paris-saclay-cds/ramp-workflow
+    - git+https://github.com/AlexandreHutton/stroke
+    - wget
     - ramp-utils
     - imbalanced-learn
     - tensorflow-addons<0.12
-
+    - bids
+    - osfclient
     # Extra requirements pip
     - xgboost
     - catboost
+    - jupyterlab
+    - jupyter_contrib_nbextensions

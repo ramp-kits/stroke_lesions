@@ -1,8 +1,6 @@
-from sklearn.metrics import f1_score
 import numpy as np
-from rampwf.score_types.base import BaseScoreType
-import inspect
 from bids_loader import BIDSLoader
+
 
 class DiceCoeff():
     def __init__(self,
@@ -58,25 +56,28 @@ class DiceCoeff():
 
         fscore = 0
         # Load example to ensure that the size fits
-        dat = estimator.predict(BIDSLoader.load_image_tuple(Y_pred.y_pred[0].pred))
-        fscore_list = []
-        if (not self.check_y_pred_dimensions(y_true[0,...], dat)):
-            raise (ValueError(f'Shape mismatch between y_true {y_true.shape} and y_pred {y_pred.shape}'))
+        dat = estimator.predict(
+            BIDSLoader.load_image_tuple(
+                Y_pred.y_pred[0].pred))
+        if (not self.check_y_pred_dimensions(y_true[0, ...], dat)):
+            raise (
+                ValueError(f'Shape mismatch between y_true {y_true.shape} and y_pred {dat}'))
 
         for idx, prediction_object in enumerate(Y_pred.y_pred):
             # First sample is already loaded; let's not waste the loading.
             if(idx != 0):
                 dat = BIDSLoader.load_image_tuple(prediction_object.pred)
-            # Note: If you want to get the weighted mean, use self.calc_score_parts
+            # Note: If you want to get the weighted mean, use
+            # self.calc_score_parts
             sd_score = self.calc_score(dat, y_true[idx, ...])
             fscore += sd_score
 
         # Return the mean score
-        return fscore/(idx+1)
+        return fscore / (idx + 1)
 
     @staticmethod
     def calc_score(array_0: np.array,
-                    array_1: np.array):
+                   array_1: np.array):
         '''
         Performs the calculation to get the Sørensen–Dice coefficient.
         Parameters
@@ -92,14 +93,15 @@ class DiceCoeff():
             Sørensen–Dice coefficient
         '''
         # Reshape to use dot product
-        # NOTE: This computation of the coefficient allows for continuous values in the prediction.
+        # NOTE: This computation of the coefficient allows for continuous
+        # values in the prediction.
         overlap, sum0, sum1 = DiceCoeff.calc_score_parts(array_0, array_1)
         sorenson = overlap / (sum0 + sum1)
         return sorenson
 
     @staticmethod
     def calc_score_parts(array_0: np.array,
-                    array_1: np.array):
+                         array_1: np.array):
         '''
         Computes the three parts of the Sørensen–Dice coefficient: overlap and 2 positives
         Parameters
@@ -114,10 +116,8 @@ class DiceCoeff():
         '''
         array_0_reshape = np.reshape(array_0, (1, np.prod(array_0.shape)))
         array_1_reshape = np.reshape(array_1, (np.prod((array_1.shape)), 1))
-        overlap = 2*array_0_reshape @ array_1_reshape
+        overlap = 2 * array_0_reshape @ array_1_reshape
         return (overlap[0][0], np.sum(array_0), np.sum(array_1))
-
-
 
     @staticmethod
     def check_y_pred_dimensions(array_0: np.array,

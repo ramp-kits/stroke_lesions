@@ -3,13 +3,15 @@ on:
   push:
     branches:
       - master
+      - main
   pull_request:
     branches:
       - master
+      - main
 
 jobs:
   build_conda:
-    name: Linux Conda
+    name: RAMP tests
     runs-on: "ubuntu-latest"
     defaults:
       run:
@@ -40,10 +42,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 nbconvert[test]
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install git+https://github.com/AlexandreHutton/stroke
     - name: Test
       run: |
         flake8 *.py submissions/*/*.py
         python download_data.py
         ramp-test --quick-test
         ramp-test --submission sample --quick-test
-        jupyter nbconvert --execute stroke_starting_kit.ipynb --to html --ExecutePreprocessor.kernel_name=python3
+        jupyter nbconvert --execute stroke_starting_kit.ipynb --to html --ExecutePreprocessor.kernel_name=python3 

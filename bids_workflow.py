@@ -1,9 +1,8 @@
-import rampwf
-from prediction import BIDSPrediction
 from rampwf.utils.importing import import_module_from_source
 import os
 import config
 from bids_loader import BIDSLoader
+
 
 class BIDSWorkflow():
     def __init__(self,
@@ -57,15 +56,19 @@ class BIDSWorkflow():
             train_is = slice(None, None, None)
 
         batch_size = config.training['batch_size']
-        estimator_module = import_module_from_source(os.path.join(module_path, self.element_names[0]),
-                                              self.element_names[0],
-                                              sanitize=True)
+        estimator_module = import_module_from_source(
+            os.path.join(
+                module_path,
+                self.element_names[0]),
+            self.element_names[0],
+            sanitize=True)
         self.estimator = estimator_module.BIDSEstimator()
 
         for idx in range(0, len(train_is), batch_size):
             # Get tuples to load
-            data_to_load = [X_array[i] for i in train_is[idx:idx+batch_size]]
-            target_to_load = [y_array[i] for i in train_is[idx:idx+batch_size]]
+            data_to_load = [X_array[i] for i in train_is[idx:idx + batch_size]]
+            target_to_load = [y_array[i]
+                              for i in train_is[idx:idx + batch_size]]
             # Load data
             data = BIDSLoader.load_image_tuple_list(data_to_load)
             target = BIDSLoader.load_image_tuple_list(target_to_load)
