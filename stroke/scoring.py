@@ -59,21 +59,50 @@ class DiceCoeff():
         dat = estimator.predict(
             BIDSLoader.load_image_tuple(
                 Y_pred.y_pred[0].pred))
-        if (not self.check_y_pred_dimensions(y_true[0, ...], dat)):
-            raise (
-                ValueError(f'Shape mismatch between y_true {y_true.shape} and y_pred {dat}'))
+        # Have to unpack if y_true is bool
+        ## Using proxy of y_true.shape != y_pred.shape to indicate that data needs to be unpacked
+        must_unpack = y_true[0, ...].shape != dat.shape
 
         for idx, prediction_object in enumerate(Y_pred.y_pred):
             # First sample is already loaded; let's not waste the loading.
             if(idx != 0):
                 dat = BIDSLoader.load_image_tuple(prediction_object.pred)
+
             # Note: If you want to get the weighted mean, use
             # self.calc_score_parts
-            sd_score = self.calc_score(dat, y_true[idx, ...])
+            if(must_unpack):
+                unpacked_y_sample = np.array(self.unpack_data(y_true[idx, ...], dat.shape), dtype=dat.dtype)
+                # unpacked_y_sample = np.array(np.unpackbits(y_true[idx, ...]), dtype=dat.dtype)
+                unpacked_y_sample = unpacked_y_sample.reshape(dat.shape)
+                sd_score = self.calc_score(dat, unpacked_y_sample)
+            else:
+                sd_score = self.calc_score(dat, y_true[idx, ...])
             fscore += sd_score
 
         # Return the mean score
         return fscore / (idx + 1)
+
+    @staticmethod
+    def unpack_data(array_0: np.array,
+                     output_shape: np.array):
+        '''
+        Unpacks boolean data packed via np.packbits into appropriate shape, discarding excess bytes
+        Parameters
+        ----------
+        array_0 : np.array
+            np.uint8 array to unpack
+        output_shape : tuple
+            Expected shape of output.
+
+        Returns
+        -------
+        np.array
+            Unpacked, reshape array
+        '''
+        unpack_shape = np.prod(array_0.shape)*8
+        extra_entries = unpack_shape - np.prod(output_shape)
+        return np.unpackbits(array_0)[:-extra_entries].reshape(output_shape)
+
 
     @staticmethod
     def calc_score(array_0: np.array,

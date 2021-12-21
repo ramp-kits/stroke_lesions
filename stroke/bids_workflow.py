@@ -71,7 +71,7 @@ class BIDSWorkflow():
                               for i in train_is[idx:idx + batch_size]]
             # Load data
             data = BIDSLoader.load_image_tuple_list(data_to_load)
-            target = BIDSLoader.load_image_tuple_list(target_to_load)
+            target = BIDSLoader.load_image_tuple_list(target_to_load, dtype=stroke_config.data_types['target'])
 
             # Fit
             self.estimator.fit_partial(data, target)

@@ -2,13 +2,14 @@ from stroke.bids_loader import BIDSLoader
 from os.path import join
 import os
 from bids.exceptions import BIDSValidationError
-
+import numpy as np
 estimator_filename = 'estimator.py'
 data_path = 'data/'
 # Used for checking that the data was downloaded correctly:
 
 # Data
-
+data_types = {'data': np.float32,
+              'target': bool}
 
 training = {'batch_size': 5,
             'dir_name': join(data_path, 'train'),

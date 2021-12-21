@@ -1,4 +1,5 @@
 from stroke.bids_loader import BIDSLoader
+from stroke import stroke_config
 import numpy as np
 from rampwf.prediction_types.base import BasePrediction
 
@@ -34,8 +35,12 @@ class BIDSPrediction(BasePrediction):
         if(y_true is not None):
             if(fold_is is not None):
                 y_true = [y_true[i] for i in fold_is]
-            self.y_true = np.array([BIDSLoader.load_image_tuple(y)
-                                   for y in y_true], dtype=bool)
+            if(stroke_config.data_types['target'] is not bool):
+                self.y_true = np.array([BIDSLoader.load_image_tuple(y, dtype=stroke_config.data_types['target'])
+                                   for y in y_true], dtype=stroke_config.data_types['target'])
+            else:
+                self.y_true = np.array([BIDSLoader.load_image_tuple(y, dtype=stroke_config.data_types['target'])
+                                        for y in y_true], dtype=np.uint8)
         else:
             self.y_true = []
 

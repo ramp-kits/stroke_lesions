@@ -3,7 +3,6 @@ from bids import BIDSLayout
 from bids.layout.models import BIDSImageFile
 import numpy as np
 from collections import defaultdict
-
 import bids
 bids.config.set_option(
     'extension_initial_dot',
@@ -312,9 +311,16 @@ class BIDSLoader():
             Loaded data
         '''
         data_shape = image_tuple[0].get_image().shape
-        data = np.zeros((len(image_tuple), *data_shape), dtype=dtype)
-        for idx, im in enumerate(image_tuple):
-            data[idx, ...] = np.array(im.get_image().get_fdata(), dtype=dtype)
+        if(dtype is not bool):
+            data = np.zeros((len(image_tuple), *data_shape), dtype=dtype)
+            for idx, im in enumerate(image_tuple):
+                data[idx, ...] = np.array(im.get_image().get_fdata(), dtype=dtype)
+        else:
+            num_bytes = int(np.ceil(np.prod(data_shape)/8))
+            data = np.zeros((len(image_tuple), num_bytes), dtype=np.uint8)
+            for idx, im in enumerate(image_tuple):
+                tmp_dat = np.array(im.get_image().get_fdata(), dtype=dtype)
+                data[idx, ...] = np.packbits(tmp_dat)
         return data
 
     @staticmethod
@@ -335,10 +341,17 @@ class BIDSLoader():
         num_batch = len(image_list)
         num_dim = len(image_list[0])
         data_shape = image_list[0][0].get_image().shape
-        data = np.zeros((num_batch, num_dim, *data_shape), dtype=dtype)
-        for idx, image_tuple in enumerate(image_list):
-            data[idx, ...] = BIDSLoader.load_image_tuple(
-                image_tuple, dtype=dtype)
+        if(dtype is not bool):
+            data = np.zeros((num_batch, num_dim, *data_shape), dtype=dtype)
+            for idx, image_tuple in enumerate(image_list):
+                data[idx, ...] = BIDSLoader.load_image_tuple(
+                    image_tuple, dtype=dtype)
+        else:
+            num_bytes = int(np.ceil(np.prod(data_shape)/8))
+            data = np.zeros((num_batch, num_dim, num_bytes), dtype=np.uint8)
+            for idx, image_tuple in enumerate(image_list):
+                data[idx, ...] = BIDSLoader.load_image_tuple(
+                    image_tuple, dtype=dtype)
         return data
 
     def load_sample(self, idx: int):
