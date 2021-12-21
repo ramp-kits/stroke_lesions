@@ -1,5 +1,5 @@
 import numpy as np
-from bids_loader import BIDSLoader
+from stroke.bids_loader import BIDSLoader
 
 
 class DiceCoeff():

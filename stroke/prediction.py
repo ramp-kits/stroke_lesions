@@ -1,4 +1,4 @@
-from bids_loader import BIDSLoader
+from stroke.bids_loader import BIDSLoader
 import numpy as np
 from rampwf.prediction_types.base import BasePrediction
 

@@ -6,16 +6,6 @@ setup(
     description='RAMP module for the Stroke Segmentation Challenge',
     author='NPNL',
     py_modules=[
-        'bids_loader',
-        'bids_workflow',
-        'stroke_config',
-        'download_data',
-        'indi_reformat',
-        'nii_slice',
-        'prediction',
-        'problem',
-        'problem',
-        'scoring',
-        'setup'],
+        'stroke'],
     url='https://github.com/AlexandreHutton/stroke',
     license='gpl-3.0')

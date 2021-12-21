@@ -1,5 +1,5 @@
-from . import bids_loader, bids_workflow, stroke_config, download_data, indi_reformat
-from . import nii_slice, prediction, problem, scoring
+from stroke import bids_loader, bids_workflow, stroke_config, download_data, indi_reformat
+from stroke import nii_slice, prediction, scoring
 
 __all__ = [
     'bids_loader',
@@ -9,5 +9,4 @@ __all__ = [
     'indi_reformat',
     'nii_slice',
     'prediction',
-    'problem',
     'scoring']

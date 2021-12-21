@@ -1,7 +1,7 @@
 from rampwf.utils.importing import import_module_from_source
 import os
-import stroke_config
-from bids_loader import BIDSLoader
+from stroke import stroke_config
+from stroke.bids_loader import BIDSLoader
 
 
 class BIDSWorkflow():

@@ -1,4 +1,4 @@
-from bids_loader import BIDSLoader
+from stroke.bids_loader import BIDSLoader
 from os.path import join
 import os
 from bids.exceptions import BIDSValidationError

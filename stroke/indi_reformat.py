@@ -4,7 +4,7 @@ from os.path import join
 import pathlib
 import shutil
 import json
-import stroke_config
+from stroke import stroke_config
 
 
 def bidsify_indi_atlas(atlas_path: str,

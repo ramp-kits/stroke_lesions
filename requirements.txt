@@ -1,6 +1,7 @@
 click
+stroke
 git+git://github.com/paris-saclay-cds/ramp-workflow
-git+git://github.com/AlexandreHutton/stroke
+wheel
 ramp-utils
 numpy
 scikit-learn>=0.22
