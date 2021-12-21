@@ -4,7 +4,7 @@ from os.path import join
 import pathlib
 import shutil
 import json
-import config
+import stroke_config
 
 
 def bidsify_indi_atlas(atlas_path: str,
@@ -30,11 +30,11 @@ def bidsify_indi_atlas(atlas_path: str,
     dest = pathlib.Path(destination_path)
     training_dest = pathlib.Path(dest).joinpath('train')
     derivatives_dest = training_dest.joinpath(
-        'derivatives', config.training['data_derivatives_names'][0])
+        'derivatives', stroke_config.training['data_derivatives_names'][0])
 
     testing_dest = pathlib.Path(dest).joinpath('test')
     derivatives_test_dest = testing_dest.joinpath(
-        'derivatives', config.testing['data_derivatives_names'][0])
+        'derivatives', stroke_config.testing['data_derivatives_names'][0])
     # Get test subjects list
     f = open('data_test_list.txt', 'r')
     test_subjects = set(f.read().splitlines())

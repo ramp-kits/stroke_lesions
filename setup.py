@@ -8,7 +8,7 @@ setup(
     py_modules=[
         'bids_loader',
         'bids_workflow',
-        'config',
+        'stroke_config',
         'download_data',
         'indi_reformat',
         'nii_slice',
