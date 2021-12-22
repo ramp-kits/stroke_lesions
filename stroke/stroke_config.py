@@ -55,10 +55,16 @@ try:
             batch_size=training["batch_size"],
         )
         if is_quick_test:
-            bids_loader_train.data_list = bids_loader_train.data_list[:num_subjects_quick_test]
-            bids_loader_train.target_list = bids_loader_train.target_list[:num_subjects_quick_test]
+            bids_loader_train.data_list = bids_loader_train.data_list[
+                :num_subjects_quick_test
+            ]
+            bids_loader_train.target_list = bids_loader_train.target_list[
+                :num_subjects_quick_test
+            ]
 except BIDSValidationError:
-    print("Warning: BIDS default path is not valid. Consider modifying config.py to match your data structure.")
+    print(
+        "Warning: BIDS default path is not valid. Consider modifying config.py to match your data structure."
+    )
     # default training path not valid; ignore
     pass
 
@@ -79,9 +85,15 @@ try:
             batch_size=testing["batch_size"],
         )
         if is_quick_test:
-            bids_loader_test.data_list = bids_loader_test.data_list[:num_subjects_quick_test]
-            bids_loader_test.target_list = bids_loader_test.target_list[:num_subjects_quick_test]
+            bids_loader_test.data_list = bids_loader_test.data_list[
+                :num_subjects_quick_test
+            ]
+            bids_loader_test.target_list = bids_loader_test.target_list[
+                :num_subjects_quick_test
+            ]
 except BIDSValidationError:
-    print("Warning: BIDS default path is not valid. Consider modifying config.py to match your data structure.")
+    print(
+        "Warning: BIDS default path is not valid. Consider modifying config.py to match your data structure."
+    )
     # default testing path not valid; ignore
     pass
