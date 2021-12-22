@@ -316,7 +316,7 @@ class BIDSLoader():
             for idx, im in enumerate(image_tuple):
                 data[idx, ...] = np.array(im.get_image().get_fdata(), dtype=dtype)
         else:
-            num_bytes = int(np.ceil(np.prod(data_shape)/8))
+            num_bytes = int(np.ceil(np.prod(data_shape) / 8))
             data = np.zeros((len(image_tuple), num_bytes), dtype=np.uint8)
             for idx, im in enumerate(image_tuple):
                 tmp_dat = np.array(im.get_image().get_fdata(), dtype=dtype)
@@ -347,7 +347,7 @@ class BIDSLoader():
                 data[idx, ...] = BIDSLoader.load_image_tuple(
                     image_tuple, dtype=dtype)
         else:
-            num_bytes = int(np.ceil(np.prod(data_shape)/8))
+            num_bytes = int(np.ceil(np.prod(data_shape) / 8))
             data = np.zeros((num_batch, num_dim, num_bytes), dtype=np.uint8)
             for idx, image_tuple in enumerate(image_list):
                 data[idx, ...] = BIDSLoader.load_image_tuple(

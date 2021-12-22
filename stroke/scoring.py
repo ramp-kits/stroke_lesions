@@ -60,7 +60,7 @@ class DiceCoeff():
             BIDSLoader.load_image_tuple(
                 Y_pred.y_pred[0].pred))
         # Have to unpack if y_true is bool
-        ## Using proxy of y_true.shape != y_pred.shape to indicate that data needs to be unpacked
+        # Using proxy of y_true.shape != y_pred.shape to indicate that data needs to be unpacked
         must_unpack = y_true[0, ...].shape != dat.shape
 
         for idx, prediction_object in enumerate(Y_pred.y_pred):
@@ -84,7 +84,7 @@ class DiceCoeff():
 
     @staticmethod
     def unpack_data(array_0: np.array,
-                     output_shape: np.array):
+                    output_shape: np.array):
         '''
         Unpacks boolean data packed via np.packbits into appropriate shape, discarding excess bytes
         Parameters
@@ -99,10 +99,9 @@ class DiceCoeff():
         np.array
             Unpacked, reshape array
         '''
-        unpack_shape = np.prod(array_0.shape)*8
+        unpack_shape = np.prod(array_0.shape) * 8
         extra_entries = unpack_shape - np.prod(output_shape)
         return np.unpackbits(array_0)[:-extra_entries].reshape(output_shape)
-
 
     @staticmethod
     def calc_score(array_0: np.array,
