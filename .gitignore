@@ -11,3 +11,5 @@
 *.pkl
 
 data/*
+
+.vscode/
