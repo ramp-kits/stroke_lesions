@@ -1,6 +1,6 @@
+import os
 import unittest
 from download_data import check_hash_correct, get_sha256
-import os
 
 
 class TestHash(unittest.TestCase):
