@@ -39,12 +39,22 @@ class BIDSPrediction(BasePrediction):
                 y_true = [y_true[i] for i in fold_is]
             if stroke_config.data_types["target"] is not bool:
                 self.y_true = np.array(
-                    [BIDSLoader.load_image_tuple(y, dtype=stroke_config.data_types["target"]) for y in y_true],
+                    [
+                        BIDSLoader.load_image_tuple(
+                            y, dtype=stroke_config.data_types["target"]
+                        )
+                        for y in y_true
+                    ],
                     dtype=stroke_config.data_types["target"],
                 )
             else:
                 self.y_true = np.array(
-                    [BIDSLoader.load_image_tuple(y, dtype=stroke_config.data_types["target"]) for y in y_true],
+                    [
+                        BIDSLoader.load_image_tuple(
+                            y, dtype=stroke_config.data_types["target"]
+                        )
+                        for y in y_true
+                    ],
                     dtype=np.uint8,
                 )
         else:
@@ -133,5 +143,7 @@ class BIDSPrediction(BasePrediction):
                 continue
             second_pred.append(p)
             second_true.append(t)
-        new_prediction = cls(label_names=label_names, y_pred=second_pred, y_true=second_true)
+        new_prediction = cls(
+            label_names=label_names, y_pred=second_pred, y_true=second_true
+        )
         return new_prediction

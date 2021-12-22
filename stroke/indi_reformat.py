@@ -28,10 +28,14 @@ def bidsify_indi_atlas(atlas_path: str, destination_path: str = "data"):
     # Create destination if needed
     dest = pathlib.Path(destination_path)
     training_dest = pathlib.Path(dest).joinpath("train")
-    derivatives_dest = training_dest.joinpath("derivatives", stroke_config.training["data_derivatives_names"][0])
+    derivatives_dest = training_dest.joinpath(
+        "derivatives", stroke_config.training["data_derivatives_names"][0]
+    )
 
     testing_dest = pathlib.Path(dest).joinpath("test")
-    derivatives_test_dest = testing_dest.joinpath("derivatives", stroke_config.testing["data_derivatives_names"][0])
+    derivatives_test_dest = testing_dest.joinpath(
+        "derivatives", stroke_config.testing["data_derivatives_names"][0]
+    )
     # Get test subjects list
     f = open("data_test_list.txt", "r")
     test_subjects = set(f.read().splitlines())
@@ -78,7 +82,10 @@ def bidsify_indi_atlas(atlas_path: str, destination_path: str = "data"):
                 move_file(path_to_move, destination)
 
     # Copy dataset_description.json in test set
-    shutil.copy2(dataset_description_path, derivatives_test_dest.joinpath("dataset_description.json"))
+    shutil.copy2(
+        dataset_description_path,
+        derivatives_test_dest.joinpath("dataset_description.json"),
+    )
 
     # Write dataset_description.json to top-level training dir
     dataset_desc = {"Name": "ATLAS", "BIDSVersion": "1.6.0", "Authors": ["NPNL"]}
@@ -96,8 +103,16 @@ def bidsify_indi_atlas(atlas_path: str, destination_path: str = "data"):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-a", "--atlas", help='Path of the "ATLAS_2" directory.', required=True)
-    parser.add_argument("-d", "--destination", help="Path for where to store the data.", required=False, default="data")
+    parser.add_argument(
+        "-a", "--atlas", help='Path of the "ATLAS_2" directory.', required=True
+    )
+    parser.add_argument(
+        "-d",
+        "--destination",
+        help="Path for where to store the data.",
+        required=False,
+        default="data",
+    )
     pargs = parser.parse_args()
 
     bidsify_indi_atlas(atlas_path=pargs.atlas, destination_path=pargs.destination)

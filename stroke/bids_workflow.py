@@ -20,13 +20,15 @@ class BIDSWorkflow:
             List of the names for the elements of the workflow. Included to be consistent with RAMP API.
 
         """
-        if(workflow_element_names is None):
-            workflow_element_names = ['estimator.py']
+        if workflow_element_names is None:
+            workflow_element_names = ["estimator.py"]
         self.element_names = workflow_element_names
         self.estimator = None
         return
 
-    def train_submission(self, module_path: str, X_array: list, y_array: list, train_is: list = None):
+    def train_submission(
+        self, module_path: str, X_array: list, y_array: list, train_is: list = None
+    ):
         """
         Trains the submitted estimator.
         Parameters
@@ -59,11 +61,13 @@ class BIDSWorkflow:
 
         for idx in range(0, len(train_is), batch_size):
             # Get tuples to load
-            data_to_load = [X_array[i] for i in train_is[idx: idx + batch_size]]
-            target_to_load = [y_array[i] for i in train_is[idx: idx + batch_size]]
+            data_to_load = [X_array[i] for i in train_is[idx : idx + batch_size]]
+            target_to_load = [y_array[i] for i in train_is[idx : idx + batch_size]]
             # Load data
             data = BIDSLoader.load_image_tuple_list(data_to_load)
-            target = BIDSLoader.load_image_tuple_list(target_to_load, dtype=stroke_config.data_types["target"])
+            target = BIDSLoader.load_image_tuple_list(
+                target_to_load, dtype=stroke_config.data_types["target"]
+            )
 
             # Fit
             self.estimator.fit_partial(data, target)

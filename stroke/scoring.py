@@ -62,7 +62,9 @@ class DiceCoeff:
             # Note: If you want to get the weighted mean, use
             # self.calc_score_parts
             if must_unpack:
-                unpacked_y_sample = np.array(self.unpack_data(y_true[idx, ...], dat.shape), dtype=dat.dtype)
+                unpacked_y_sample = np.array(
+                    self.unpack_data(y_true[idx, ...], dat.shape), dtype=dat.dtype
+                )
                 # unpacked_y_sample = np.array(np.unpackbits(y_true[idx, ...]), dtype=dat.dtype)
                 unpacked_y_sample = unpacked_y_sample.reshape(dat.shape)
                 sd_score = self.calc_score(dat, unpacked_y_sample)
