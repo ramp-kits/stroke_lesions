@@ -126,6 +126,7 @@ def get_test_data(path: str):
                                       batch_size=stroke_config.testing['batch_size'])
 
     if(stroke_config.is_quick_test):
-        return bids_loader_test.data_list[:stroke_config.num_subjects_quick_test], bids_loader_test.target_list[:stroke_config.num_subjects_quick_test]
+        return bids_loader_test.data_list[:stroke_config.num_subjects_quick_test], \
+               bids_loader_test.target_list[:stroke_config.num_subjects_quick_test]
     else:
         return bids_loader_test.data_list, bids_loader_test.target_list
