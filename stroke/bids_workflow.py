@@ -20,8 +20,8 @@ class BIDSWorkflow:
             List of the names for the elements of the workflow. Included to be consistent with RAMP API.
 
         """
-        if workflow_element_names is None:
-            workflow_element_names = ["estimator.py", "bids_loader.py"]
+        if(workflow_element_names is None):
+            workflow_element_names = ['estimator.py']
         self.element_names = workflow_element_names
         self.estimator = None
         return
