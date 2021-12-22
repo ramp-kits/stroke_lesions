@@ -70,17 +70,15 @@ def get_train_data(path: str):
     else:
         warnings.warn(
             f"Data path differs from that in the config file; to reduce the amount of time spent loading "
-            f"files, modify config.py: data_path = {path}"
+            f"files, modify config.py: data_path = {stroke_config.data_path}"
         )
         training_dir = os.path.join(path, stroke_config.training["dir_name"])
         bids_loader_train = BIDSLoader(
             root_dir=training_dir,
-            data_entities=[
-                {"subject": "", "session": "", "desc": "T1FinalResampledNorm"}
-            ],
-            target_entities=[{"label": "L", "desc": "T1lesion", "suffix": "mask"}],
-            data_derivatives_names=["ATLAS"],
-            target_derivatives_names=["ATLAS"],
+            data_entities=stroke_config.training["data_entities"],
+            target_entities=stroke_config.training["target_entities"],
+            data_derivatives_names=stroke_config.training["data_derivatives_names"],
+            target_derivatives_names=stroke_config.training["data_derivatives_names"],
             label_names=["not lesion", "lesion"],
             batch_size=stroke_config.training["batch_size"],
         )
@@ -125,12 +123,10 @@ def get_test_data(path: str):
         testing_dir = os.path.join(path, stroke_config.testing["dir_name"])
         bids_loader_test = BIDSLoader(
             root_dir=testing_dir,
-            data_entities=[
-                {"subject": "", "session": "", "desc": "T1FinalResampledNorm"}
-            ],
-            target_entities=[{"label": "L", "desc": "T1lesion", "suffix": "mask"}],
-            data_derivatives_names=["ATLAS"],
-            target_derivatives_names=["ATLAS"],
+            data_entities=stroke_config.testing["data_entities"],
+            target_entities=stroke_config.testing["target_entities"],
+            data_derivatives_names=stroke_config.testing["data_derivatives_names"],
+            target_derivatives_names=stroke_config.testing["target_derivatives_names"],
             label_names=["not lesion", "lesion"],
             batch_size=stroke_config.testing["batch_size"],
         )
