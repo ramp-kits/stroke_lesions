@@ -1,8 +1,9 @@
 import numpy as np
 from stroke.bids_loader import BIDSLoader
+from rampwf.score_types import BaseScoreType
 
 
-class DiceCoeff:
+class DiceCoeff(BaseScoreType):
     def __init__(self, name="Sørensen–Dice Coefficient", precision=3):
         """
         Scoring class for RAMP workflows. When called, returns the Sørensen–Dice coefficient. Note that this
@@ -20,11 +21,9 @@ class DiceCoeff:
         self.is_lower_the_better = False
         self.minimum = 0
         self.maximum = 1
-        self.worst = 0
         return
 
     def __call__(self, y_true: tuple, y_pred: np.array):
-
         return self.score_function(Y_true=y_true, Y_pred=y_pred)
 
     def score_function(self, Y_true: np.array, Y_pred: np.array):
