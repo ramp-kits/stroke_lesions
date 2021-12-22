@@ -1,6 +1,6 @@
-from scoring import DiceCoeff
 import unittest
 import numpy as np
+from stroke.scoring import DiceCoeff
 
 
 class TestDiceCoeff(unittest.TestCase):
