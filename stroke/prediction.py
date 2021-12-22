@@ -37,17 +37,10 @@ class BIDSPrediction(BasePrediction):
         if y_true is not None:
             if fold_is is not None:
                 y_true = [y_true[i] for i in fold_is]
-<<<<<<< HEAD
+
             if(stroke_config.data_types['target'] is not bool):
                 self.y_true = np.array([BIDSLoader.load_image_tuple(y, dtype=stroke_config.data_types['target'])
                                         for y in y_true], dtype=stroke_config.data_types['target'])
-=======
-            if stroke_config.data_types["target"] is not bool:
-                self.y_true = np.array(
-                    [BIDSLoader.load_image_tuple(y, dtype=stroke_config.data_types["target"]) for y in y_true],
-                    dtype=stroke_config.data_types["target"],
-                )
->>>>>>> 53cdd05... reformat code with black, fix imports in tests, remove some build files, reorder some imports
             else:
                 self.y_true = np.array(
                     [BIDSLoader.load_image_tuple(y, dtype=stroke_config.data_types["target"]) for y in y_true],

@@ -74,14 +74,8 @@ class DiceCoeff:
         return fscore / (idx + 1)
 
     @staticmethod
-<<<<<<< HEAD
-    def unpack_data(array_0: np.array,
-                    output_shape: np.array):
-        '''
-=======
     def unpack_data(array_0: np.array, output_shape: np.array):
         """
->>>>>>> 53cdd05... reformat code with black, fix imports in tests, remove some build files, reorder some imports
         Unpacks boolean data packed via np.packbits into appropriate shape, discarding excess bytes
         Parameters
         ----------
@@ -94,11 +88,7 @@ class DiceCoeff:
         -------
         np.array
             Unpacked, reshape array
-<<<<<<< HEAD
-        '''
-=======
         """
->>>>>>> 53cdd05... reformat code with black, fix imports in tests, remove some build files, reorder some imports
         unpack_shape = np.prod(array_0.shape) * 8
         extra_entries = unpack_shape - np.prod(output_shape)
         return np.unpackbits(array_0)[:-extra_entries].reshape(output_shape)
