@@ -21,6 +21,7 @@ class DiceCoeff(BaseScoreType):
         self.is_lower_the_better = False
         self.minimum = 0
         self.maximum = 1
+        self.worst = self.minimum
         return
 
     def __call__(self, y_true: tuple, y_pred: np.array):

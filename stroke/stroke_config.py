@@ -2,6 +2,8 @@ import os
 from os.path import join
 import numpy as np
 from bids.exceptions import BIDSValidationError
+import bids
+bids.config.set_option("extension_initial_dot", True)  # bids warning suppression
 
 from stroke.bids_loader import BIDSLoader
 
