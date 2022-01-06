@@ -128,7 +128,7 @@ def download_private(user: str, pword: str):
         for f in s.files:
             fname = f.name
             if fname.endswith(".tar.gz"):
-                f.write_to(join(tmpdir, fname))
+                f.write_to(open(join(tmpdir, fname), "wb"))
                 tarf = tarfile.open(join(tmpdir, fname))
                 tarf.extractall("./")
                 tarf.close()

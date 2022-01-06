@@ -1,12 +1,10 @@
 import numpy as np
 import bids
-from rampwf.prediction_types.base import BasePrediction
-
-from stroke.bids_loader import BIDSLoader
-from stroke import stroke_config
-
 
 bids.config.set_option("extension_initial_dot", True)  # bids warning suppression
+from rampwf.prediction_types.base import BasePrediction
+from stroke.bids_loader import BIDSLoader
+from stroke import stroke_config
 
 
 class BIDSPrediction(BasePrediction):

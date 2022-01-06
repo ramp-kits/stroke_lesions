@@ -1,11 +1,11 @@
 import warnings
 from collections import defaultdict
 import numpy as np
-from bids import BIDSLayout
-from bids.layout.models import BIDSImageFile
 import bids
 
 bids.config.set_option("extension_initial_dot", True)  # bids warning suppression
+from bids import BIDSLayout
+from bids.layout.models import BIDSImageFile
 
 
 class BIDSLoader:
