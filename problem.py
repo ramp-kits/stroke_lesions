@@ -7,7 +7,7 @@
 # The solution here is to make the requirement conditional on whether we're in the frontend or the backend.
 # However, there are no explicit environment variables to signal which one we're in. Instead, we'll condition
 # on whether the requirements are met (i.e., that `stroke` is installed).
-# ... which puts us in the ridiculous state of, "required only if met"
+# ... which puts us in the state of, "required only if met"
 
 problem_title = "ATLAS Stroke Lesion Segmentation"
 try:
@@ -28,10 +28,12 @@ try:
     # fields to be defined
     score_types = [DiceCoeff()]
 except ModuleNotFoundError:
+    import warnings
+    from rampwf.score_types import BaseScoreType
     warnings.warn('Stroke module is not installed; only metadata is made available. If you expect to use the module''s'
                   ' methods, you''ll need to install the package.')
     # define dummy score_types that matches the real one's metadata
-    class dummy_score_type:
+    class dummy_score_type(BaseScoreType):
         def __init__(self, name='Sørensen–Dice Coefficient'):
             self.name = name
             self.precision = 3
@@ -42,7 +44,7 @@ except ModuleNotFoundError:
 
 
 
-def get_cv(X: np.array, y: np.array):
+def get_cv(X, y):
     """
     Returns the train/test split for each fold of k-fold cross-validation.
     Parameters
