@@ -1,5 +1,3 @@
-
-
 # This section is for the sake of the RAMP frontend
 # The frontend needs score_types to determine graph labels and ranges. In turn, our score_type requires the rest of the
 # package, which is problematic for the frontend since RAMP has structured it such that the event requirements are not
@@ -11,16 +9,15 @@
 
 problem_title = "ATLAS Stroke Lesion Segmentation"
 try:
-    import stroke
-    import sklearn
-    import os
-    import numpy as np
-    import warnings
     from stroke import prediction
     from stroke.bids_workflow import BIDSWorkflow
     from stroke.scoring import DiceCoeff
     from stroke import stroke_config
     from stroke.bids_loader import BIDSLoader
+    import sklearn
+    import os
+    import warnings
+
     # Define workflow; this determines how data is trained + tested.
     workflow = BIDSWorkflow()
     Predictions = prediction.BIDSPrediction  # Class containing data + targets
@@ -30,18 +27,22 @@ try:
 except ModuleNotFoundError:
     import warnings
     from rampwf.score_types import BaseScoreType
-    warnings.warn('Stroke module is not installed; only metadata is made available. If you expect to use the module''s'
-                  ' methods, you''ll need to install the package.')
+
+    warnings.warn(
+        "Stroke module is not installed; only metadata is made available. If you expect to use the module's"
+        " methods, you'll need to install the package."
+    )
     # define dummy score_types that matches the real one's metadata
+
     class dummy_score_type(BaseScoreType):
-        def __init__(self, name='Sørensen–Dice Coefficient'):
+        def __init__(self, name="Sørensen–Dice Coefficient"):
             self.name = name
             self.precision = 3
             self.is_lower_the_better = False
             self.minimum = 0
             self.maximum = 1
-    score_types = [dummy_score_type()]
 
+    score_types = [dummy_score_type()]
 
 
 def get_cv(X, y):
