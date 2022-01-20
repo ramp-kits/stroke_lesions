@@ -1,6 +1,6 @@
 click
-git+git://github.com/paris-saclay-cds/ramp-workflow
-git+git://github.com/AlexandreHutton/stroke
+git+https://github.com/paris-saclay-cds/ramp-workflow
+git+https://github.com/AlexandreHutton/stroke
 wheel
 ramp-utils
 numpy
