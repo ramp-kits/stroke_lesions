@@ -2,10 +2,10 @@
 RAMP starting kit
 
 <div style="text-align: center">
-<img src="https://raw.githubusercontent.com/ramp-kits/stroke/master/figs/stroke_logo.png" width="250px" />
+<img src="https://raw.githubusercontent.com/ramp-kits/stroke_lesions/master/figs/stroke_logo.png" width="250px" />
 </div>
 
-[![Build Status](https://github.com/ramp-kits/stroke/workflows/build/badge.svg?branch=master&event=push)](https://github.com/ramp-kits/stroke/actions)
+[![Build Status](https://github.com/ramp-kits/stroke_lesions/workflows/build/badge.svg?branch=master&event=push)](https://github.com/ramp-kits/stroke_lesions/actions)
 
 ## Getting started
 
@@ -25,7 +25,7 @@ usage.
 ### Challenge description
 
 Get started on this RAMP with the
-[dedicated notebook](stroke_starting_kit.ipynb).
+[dedicated notebook](stroke_lesions_starting_kit.ipynb).
 
 ### Test a submission
 
@@ -51,6 +51,6 @@ You can find more information regarding `ramp-workflow` in the
 
 <table class="equalDivide" cellpadding="0" cellspacing="0" width="100%" border="0">
         <td height="40%">
-            <img src="https://raw.githubusercontent.com/ramp-kits/stroke/master/figs/logo_cds.png" width="500px" ALIGN=”left”/>
+            <img src="https://raw.githubusercontent.com/ramp-kits/stroke_lesions/master/figs/DATAIA-h.png" width="500px" ALIGN=”left”/>
         </td>
 </table>

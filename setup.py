@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(
-    name="ramp_stroke",
+    name="stroke",
     version="0.1",
     description="RAMP module for the Stroke Segmentation Challenge",
     author="NPNL",
