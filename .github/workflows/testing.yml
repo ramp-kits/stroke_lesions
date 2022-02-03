@@ -49,4 +49,4 @@ jobs:
         python download_data.py
         ramp-test --quick-test
         ramp-test --submission sample --quick-test
-        jupyter nbconvert --execute stroke_starting_kit.ipynb --to html --ExecutePreprocessor.kernel_name=python3 
+        jupyter nbconvert --execute stroke_lesions_starting_kit.ipynb --to html --ExecutePreprocessor.kernel_name=python3 
