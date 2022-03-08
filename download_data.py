@@ -63,7 +63,7 @@ def data_fetch(check_hash=True):
     return
 
 
-def get_sha256(filename: str, block_size: int = 2 ** 16):
+def get_sha256(filename: str, block_size: int = 2**16):
     """
     Iteratively computes the sha256 hash of an open file in chunks of size block_size. Useful for large files that
     can't be held directly in memory and fed to hashlib.
@@ -123,6 +123,7 @@ def download_private(user: str, pword: str):
     osf_conn = osfclient.OSF(username=user, password=pword)
     proj_list = [osf_conn.project(proj_id) for proj_id in data["private_osf_ids"]]
     store_list = [proj.storage("osfstorage") for proj in proj_list]
+    os.mkdir("data")
     tmpdir = tempfile.mkdtemp()
     for s in store_list:
         for f in s.files:
@@ -130,7 +131,7 @@ def download_private(user: str, pword: str):
             if fname.endswith(".tar.gz"):
                 f.write_to(open(join(tmpdir, fname), "wb"))
                 tarf = tarfile.open(join(tmpdir, fname))
-                tarf.extractall("./")
+                tarf.extractall("./data")
                 tarf.close()
     return
 
