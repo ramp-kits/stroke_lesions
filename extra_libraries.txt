@@ -1,6 +1,7 @@
 imbalanced-learn
 scipy
-torch # pytorch cudatoolkit
+torch # pytorch
+torch # cudatoolkit
 keras
 lightgbm
 xgboost
