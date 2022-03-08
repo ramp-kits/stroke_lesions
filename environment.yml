@@ -13,7 +13,7 @@ dependencies:
   # Extra requirements
   - tensorflow-gpu
   - pytorch
-  - cudatoolkit=10.2
+  - cudatoolkit
   - torchvision
   - keras
   - lightgbm
