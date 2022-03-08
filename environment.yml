@@ -1,6 +1,7 @@
 name: ramp-stroke
 channels:
   - defaults
+  - pytorch
   - conda-forge
 dependencies:
   - numpy
