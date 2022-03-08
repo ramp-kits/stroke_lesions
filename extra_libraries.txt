@@ -1,9 +1,10 @@
 imbalanced-learn
 scipy
-torch  # pytorch
 keras
 lightgbm
 xgboost
 catboost
-tensorflow-gpu<2.4
+tensorflow-gpu
 tensorflow-addons<0.12
+torch  # pytorch cudatoolkit
+torchvision

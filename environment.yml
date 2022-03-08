@@ -10,8 +10,10 @@ dependencies:
   - pandas
   - matplotlib
   # Extra requirements
-  - tensorflow-gpu<2.4
+  - tensorflow-gpu
   - pytorch
+  - cudatoolkit=10.2
+  - torchvision
   - keras
   - lightgbm
   - nilearn
