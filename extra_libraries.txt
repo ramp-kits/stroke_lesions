@@ -6,5 +6,5 @@ lightgbm
 xgboost
 catboost
 tensorflow-gpu
-tensorflow-addons<0.12
+tensorflow-addons
 torchvision

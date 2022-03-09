@@ -28,7 +28,7 @@ dependencies:
     - wget
     - ramp-utils
     - imbalanced-learn
-    - tensorflow-addons<0.12
+    - tensorflow-addons
     - bids
     - osfclient
     # Extra requirements pip
