@@ -7,7 +7,7 @@ numpy
 scikit-learn>=0.22
 scikit-image>=0.18
 pandas
-matplotlib
+matplotlib  # matplotlib-base
 nilearn
 scipy
 jupyterlab
