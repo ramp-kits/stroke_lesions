@@ -25,7 +25,7 @@ def preprocess_pip_deps(lines):
         # with conda install name. Note that if two packages are to be
         # installed with conda, they can be added on the same line separated
         # with a space.
-        deps.append(dep.split('#')[-1].strip().split())
+        deps.extend(dep.split('#')[-1].strip().split())
     return deps
 
 
