@@ -21,9 +21,11 @@ def preprocess_pip_deps(lines):
         if len(dep) == 0 or dep.startswith('#'):
             continue
 
-        # If there is a comment on the same line
-        # use this to declare compat with conda install
-        deps.append(dep.split('#')[-1].strip())
+        # If there is a comment on the same line use this to declare compat
+        # with conda install name. Note that if two packages are to be
+        # installed with conda, they can be added on the same line separated
+        # with a space.
+        deps.extend(dep.split('#')[-1].strip().split())
     return deps
 
 

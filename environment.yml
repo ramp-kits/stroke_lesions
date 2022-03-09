@@ -1,6 +1,6 @@
 name: ramp-stroke
 channels:
-  - defaults
+  - pytorch
   - conda-forge
 dependencies:
   - numpy
@@ -8,14 +8,18 @@ dependencies:
   - scipy
   - click
   - pandas
-  - matplotlib
+  - matplotlib-base
+
   # Extra requirements
-  - tensorflow-gpu<2.4
+  - tensorflow-gpu
   - pytorch
+  - cudatoolkit=10.2
+  - torchvision
   - keras
   - lightgbm
   - nilearn
   - scikit-image>=0.18
+
   - pip
   - pip:
     - wheel
@@ -24,7 +28,7 @@ dependencies:
     - wget
     - ramp-utils
     - imbalanced-learn
-    - tensorflow-addons<0.12
+    - tensorflow-addons
     - bids
     - osfclient
     # Extra requirements pip
