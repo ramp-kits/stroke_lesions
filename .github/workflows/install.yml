@@ -24,6 +24,7 @@ jobs:
 
     - name: Pip install extra_libraries
       run: pip install -r extra_libraries.txt
+
   conda_install:
     name: Check extra install with conda
     runs-on: ubuntu-latest
@@ -31,8 +32,10 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: s-weigand/setup-conda@v1
+    - name: Install mamba
+      run: conda install -y mamba
     - name: Conda install environment.yml
-      run: conda env create -f environment.yml -n test_env
+      run: mamba env create -f environment.yml -n test_env
 
   check_same_deps:
     name: Check pip and conda install same env
