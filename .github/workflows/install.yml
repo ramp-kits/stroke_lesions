@@ -33,7 +33,7 @@ jobs:
     - uses: actions/checkout@v2
     - uses: s-weigand/setup-conda@v1
     - name: Install mamba
-      run: conda install -y mamba
+      run: conda install -y -c conda-forge mamba
     - name: Conda install environment.yml
       run: mamba env create -f environment.yml -n test_env
 
