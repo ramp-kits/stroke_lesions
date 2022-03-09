@@ -46,6 +46,7 @@ jobs:
     - name: Test
       run: |
         flake8 *.py submissions/*/*.py
+        export RAMP_TEST_MODE=true  # to have download_data.py just download the dummy dataset
         python download_data.py
         ramp-test --quick-test
         ramp-test --submission sample --quick-test
