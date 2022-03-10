@@ -44,6 +44,7 @@ def data_fetch(check_hash=True):
     ----------
     check_hash : bool
         Whether to check the hash of the downloaded data.
+
     Returns
     -------
     None
@@ -139,17 +140,10 @@ def download_private(user: str, pword: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--private", required=False, action="store_true", default=False)
-    parser.add_argument(
-        "--realfetch",
-        required=False,
-        action="store_true",
-        default=False,
-        help="Flag whether to fetch real data.",
-    )
     parser.add_argument("--username", required=False, type=str)
     parser.add_argument("--password", required=False, type=str)
     pargs = parser.parse_args()
-    if "RAMP_TEST_MODE" in os.environ.keys() or not pargs.realfetch:
+    if "RAMP_TEST_MODE" in os.environ.keys():
         dummy_fetch()
         print(
             "Warning: Data is not actually being fetched. See documentation for instructions on how to get a local copy"
