@@ -1,5 +1,5 @@
 click
-git+https://github.com/paris-saclay-cds/ramp-workflow
+ramp-workflow
 git+https://github.com/AlexandreHutton/stroke
 wheel
 ramp-utils

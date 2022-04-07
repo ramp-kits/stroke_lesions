@@ -23,7 +23,7 @@ dependencies:
   - pip
   - pip:
     - wheel
-    - git+https://github.com/paris-saclay-cds/ramp-workflow
+    - ramp-workflow
     - git+https://github.com/AlexandreHutton/stroke
     - wget
     - ramp-utils
