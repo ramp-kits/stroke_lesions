@@ -60,7 +60,7 @@ class DiceCoeff(BaseScoreType):
             fscore += self.calc_score(dat, y_true_i)
 
         # Return the mean score
-        return fscore / (idx + 1)
+        return fscore / len(y_true)
 
     @staticmethod
     def unpack_data(array_0: np.array, output_shape: np.array):
