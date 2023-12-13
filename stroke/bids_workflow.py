@@ -1,6 +1,8 @@
 import os
+import numpy as np
 from rampwf.utils.importing import import_module_from_source
 from stroke import stroke_config
+from stroke.scoring import DiceCoeff
 from stroke.bids_loader import BIDSLoader
 
 
@@ -61,13 +63,16 @@ class BIDSWorkflow:
 
         for idx in range(0, len(train_is), batch_size):
             # Get tuples to load
-            data_to_load = [X_array[i] for i in train_is[idx : idx + batch_size]]
-            target_to_load = [y_array[i] for i in train_is[idx : idx + batch_size]]
+            data_to_load = [X_array[i] for i in train_is[idx:idx + batch_size]]
+            target_to_load = [y_array[i] for i in train_is[idx:idx + batch_size]]
             # Load data
             data = BIDSLoader.load_image_tuple_list(data_to_load)
             target = BIDSLoader.load_image_tuple_list(
                 target_to_load, dtype=stroke_config.data_types["target"]
             )
+            target = np.array([
+                DiceCoeff.unpack_data(y, X.shape) for y, X in zip(target, data)
+            ])
 
             # Fit
             self.estimator.fit_partial(data, target)
