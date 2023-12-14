@@ -43,14 +43,17 @@ class DiceCoeff(BaseScoreType):
             Sørensen–Dice coefficient.
         """
         y_true = np.array(Y_true.y_true)
-        assert len(y_true) == len(Y_pred.y_pred)
+        if len(Y_pred.y_pred) != 0:
+            assert len(y_true) == len(Y_pred.y_pred)
         if len(Y_pred.y_pred) == 0:
             return 0
         estimator = Y_pred.y_pred[0].estimator
 
         fscore = 0
         for y_true_i, prediction_object in zip(y_true, Y_pred.y_pred):
-            dat = estimator.predict(BIDSLoader.load_image_tuple(prediction_object.pred))
+            dat = estimator.predict(
+                BIDSLoader.load_image_tuple(prediction_object.pred)
+            )
 
             # Using proxy of y_true.shape != y_pred.shape to indicate that data needs to be unpacked
             if y_true_i.shape != dat.shape:
