@@ -12,7 +12,6 @@ dependencies:
 
   # Extra requirements
   - cudatoolkit=10.2
-  - tensorflow-gpu
   - pytorch
   - torchvision
   - keras
@@ -28,7 +27,6 @@ dependencies:
     - wget
     - ramp-utils
     - imbalanced-learn
-    - tensorflow-addons
     - bids
     - osfclient
     # Extra requirements pip

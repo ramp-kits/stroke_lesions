@@ -5,6 +5,4 @@ keras
 lightgbm
 xgboost
 catboost
-tensorflow-gpu
-tensorflow-addons
 torchvision
