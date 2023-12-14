@@ -11,9 +11,9 @@ dependencies:
   - matplotlib-base
 
   # Extra requirements
+  - cudatoolkit=10.2
   - tensorflow-gpu
   - pytorch
-  - cudatoolkit=10.2
   - torchvision
   - keras
   - lightgbm
