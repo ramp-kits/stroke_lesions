@@ -1,6 +1,6 @@
 click
 ramp-workflow
-git+https://github.com/AlexandreHutton/stroke
+git+https://github.com/ramp-kits/stroke_lesions
 wheel
 ramp-utils
 numpy

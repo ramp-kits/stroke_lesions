@@ -24,7 +24,7 @@ dependencies:
   - pip:
     - wheel
     - ramp-workflow
-    - git+https://github.com/AlexandreHutton/stroke
+    - git+https://github.com/ramp-kits/stroke_lesions
     - wget
     - ramp-utils
     - imbalanced-learn
