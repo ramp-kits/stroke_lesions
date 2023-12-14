@@ -3,7 +3,7 @@ ramp-workflow
 git+https://github.com/ramp-kits/stroke_lesions
 wheel
 ramp-utils
-numpy=1.23.4
+numpy==1.23.4
 scikit-learn>=0.22
 scikit-image>=0.18
 pandas
