@@ -1,6 +1,7 @@
 name: ramp-stroke
 channels:
   - pytorch
+  - nvidia
   - conda-forge
 dependencies:
   - numpy==1.23.4
@@ -11,10 +12,9 @@ dependencies:
   - matplotlib-base
 
   # Extra requirements
-  - cudatoolkit=10.2
   - pytorch
   - torchvision
-  - keras
+  - pytorch-cuda=11.8
   - lightgbm
   - nilearn
   - scikit-image>=0.18
