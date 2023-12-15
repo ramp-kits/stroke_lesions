@@ -1,7 +1,6 @@
 imbalanced-learn
 scipy
-torch # pytorch cudatoolkit=10.2
-keras
+torch # pytorch pytorch-cuda=11.8
 lightgbm
 xgboost
 catboost
