@@ -52,8 +52,8 @@ class DiceCoeff(BaseScoreType):
         fscore = 0
         for y_true_i, prediction_object in zip(y_true, Y_pred.y_pred):
             dat = estimator.predict(
-                BIDSLoader.load_image_tuple(prediction_object.pred)
-            )
+                BIDSLoader.load_image_tuple(prediction_object.pred)[None]
+            )[0]
 
             # Using proxy of y_true.shape != y_pred.shape to indicate that data needs to be unpacked
             if y_true_i.shape != dat.shape:
