@@ -7,6 +7,9 @@ import osfclient
 import argparse
 import tempfile
 import tarfile
+import getpass
+import subprocess
+import webbrowser
 
 
 data = {
@@ -49,7 +52,7 @@ def data_fetch(check_hash=True):
     -------
     None
     """
-    wget.download(data["url"])
+    # wget.download(data["url"])
     filename = os.path.basename(data["url"])
 
     if check_hash:
@@ -58,9 +61,31 @@ def data_fetch(check_hash=True):
         if check_hash_correct(filename, data["encrypted_hash"]):
             print("Data verified to be correct.")
         else:
-            print(
+            raise ValueError(
                 "There is something wrong with the data. Verify that the expected files are present."
             )
+
+    print("Decrypting archive.")
+    # Decrypt the data.
+    retcode = subprocess.call(
+        ['openssl', 'aes-256-cbc', '-md', 'sha256',
+         '-d', '-a', '-in',
+         'ATLAS_R2.0_encrypted.tar.gz', '-out', 'ATLAS_R2.0.tar.gz',
+         '-pass', f'pass:{getpass.getpass("Enter password:")}']
+    )
+
+    if retcode != 0:  # decrypt failed
+        url_form = "https://docs.google.com/forms/d/e/1FAIpQLSclH8padHr9zwdQVx9YY_yeM_4OqD1OQFvYcYpAQKaqC6Vscg/viewform"
+        print("Decrypting failed due to missing openssl command or invalid password. Opening form"
+              " for you to get this password.")
+        webbrowser.open_new_tab(url_form)
+        return
+
+    print("Extracting archive.")
+    tar = tarfile.open(filename.replace("_encrypted", ""), "r:gz")
+    tar.extractall("./data")
+    tar.close()
+    print("Done.")
     return
 
 
