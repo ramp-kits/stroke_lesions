@@ -18,6 +18,8 @@ dependencies:
   - lightgbm
   - nilearn
   - scikit-image>=0.18
+  - transformers
+  - datasets
 
   - pip
   - pip:

@@ -5,3 +5,5 @@ lightgbm
 xgboost
 catboost
 torchvision
+transformers
+datasets
