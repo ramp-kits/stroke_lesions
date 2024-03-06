@@ -7,3 +7,4 @@ catboost
 torchvision
 transformers
 datasets
+patchify
